@@ -1,0 +1,8 @@
+server:
+  port: 8089
+  contextPath: /alumni
+datasource:
+  mysql:
+    dsn: root:root@tcp(127.0.0.1:3306)/alumni?charset=utf8mb4&parseTime=True&loc=Local
+zap:
+  level: debug
