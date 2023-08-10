@@ -21,7 +21,7 @@ func initGin() {
 	engine.Use(ginLogger(), gin.Recovery())
 	//404处理
 	engine.NoRoute(func(context *gin.Context) {
-		context.JSON(404, response.Response{Code: 404, Message: "Not Found!"})
+		context.JSON(404, response.Response[any]{Code: 404, Message: "Not Found!"})
 	})
 	Router = engine
 	Router = engine

@@ -14,6 +14,8 @@ func init() {
 	initZap()
 	//创建mysql连接
 	initGormMysql()
+	//初始化redis
+	initRedis()
 	//创建router
 	initGin()
 }
