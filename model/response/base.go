@@ -6,7 +6,7 @@ import (
 )
 
 /*
-Response 响应函数
+Response 基础响应
 */
 
 // Info 自定义响应体
