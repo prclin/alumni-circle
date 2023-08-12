@@ -6,3 +6,13 @@ datasource:
     dsn: root:root@tcp(127.0.0.1:3306)/alumni?charset=utf8mb4&parseTime=True&loc=Local
 zap:
   level: debug
+email:
+  host: smtp.qq.com
+  port: 587
+  username: 1664619620@qq.com
+  password: gryokzzkzchicead
+redis:
+  options:
+    addr: "localhost:6379"
+    db: 0
+
