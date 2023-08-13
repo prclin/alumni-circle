@@ -9,6 +9,7 @@ type Configuration struct {
 	Datasource *Datasource
 	Email      *Email
 	Redis      *Redis
+	OSS        *OSS
 }
 
 var DefaultConfiguration = &Configuration{
@@ -17,4 +18,5 @@ var DefaultConfiguration = &Configuration{
 	Datasource: DefaultDataSource,
 	Email:      DefaultEmail,
 	Redis:      DefaultRedis,
+	OSS:        DefaultOSS,
 }
