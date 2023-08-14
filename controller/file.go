@@ -15,7 +15,6 @@ func init() {
 }
 
 func ImageUpload(c *gin.Context) {
-	// 读取文件和文件名
 	fileHeader, err := c.FormFile("file")
 	if err != nil {
 		response.Client(c, err)
@@ -27,7 +26,6 @@ func ImageUpload(c *gin.Context) {
 		response.Client(c, err)
 		return
 	}
-	// 上传图片,返回生成的image对象
 	image, err := service.ImageUpload(filename, file)
 	if err != nil {
 		response.Server(c, err)
