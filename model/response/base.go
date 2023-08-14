@@ -9,11 +9,11 @@ import (
 Response 基础响应
 */
 type Response[T any] struct {
-	//状态代码
+	// 状态代码
 	Code int32 `json:"code"`
-	//状态信息
+	// 状态信息
 	Message string `json:"message"`
-	//数据
+	// 数据
 	Data T `json:"data"`
 }
 
@@ -30,6 +30,11 @@ func Client[T any](c *gin.Context, data T) {
 // Server 500+
 func Server[T any](c *gin.Context, data T) {
 	Write(c, Response[T]{Code: http.StatusInternalServerError, Message: "Internal Server Error", Data: data})
+}
+
+// NLI 用户未登陆(403)
+func NLI(c *gin.Context) {
+	Write(c, Response[any]{Code: http.StatusForbidden, Message: "Not Logged in", Data: nil})
 }
 
 // Write 自定义写入
