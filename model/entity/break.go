@@ -25,3 +25,7 @@ func (Break) TableName() string {
 func CreateBreak(aBreak *Break) error {
 	return global.Datasource.Create(aBreak).Error
 }
+
+func GetBreak(aBreak *Break) error {
+	return global.Datasource.Where(aBreak).Take(aBreak).Error
+}
