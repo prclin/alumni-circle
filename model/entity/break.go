@@ -27,5 +27,7 @@ func CreateBreak(aBreak *Break) error {
 }
 
 func GetBreak(aBreak *Break) error {
-	return global.Datasource.Where(aBreak).Take(aBreak).Error
+	tx := global.Datasource.Where("deleted=0")
+	tx = tx.Where("id=?", aBreak.Id)
+	return tx.Take(aBreak).Error
 }

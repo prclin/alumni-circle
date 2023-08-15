@@ -22,3 +22,9 @@ func (Image) TableName() string {
 func CreateImage(image *Image) error {
 	return global.Datasource.Create(&image).Error
 }
+
+func GetImage(image *Image) error {
+	tx := global.Datasource.Where("deleted=0")
+	tx = tx.Where("id=?", image.Id)
+	return tx.Take(image).Error
+}
