@@ -1,11 +1,14 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/prclin/alumni-circle/core"
 	"github.com/prclin/alumni-circle/model/entity"
+	"github.com/prclin/alumni-circle/model/request"
 	"github.com/prclin/alumni-circle/model/response"
 	"github.com/prclin/alumni-circle/service"
+	"sort"
 	"strconv"
 )
 
@@ -27,47 +30,77 @@ func GetIdFromCookie(c *gin.Context) (id int, err error) {
 	return
 }
 
+// CreateBreak 新建课间
 func CreateBreak(c *gin.Context) {
-	aBreak := new(entity.Break)
-	if err := c.BindJSON(aBreak); err != nil {
-		response.Client(c, err)
-		return
-	}
-	if aBreak.Title == "" || aBreak.Content == "" {
-		response.Client(c, "tile and content cannot be empty")
-		return
-	}
+	// 校验cookie
 	accountId, err := GetIdFromCookie(c)
 	if err != nil {
 		response.NLI(c)
 		return
 	}
+	// 校验JSON
+	aBreak := new(entity.Break)
+	if err := c.ShouldBindJSON(aBreak); err != nil {
+		response.Client(c, err)
+		return
+	}
+	// 校验课间标题,内容不得为空
+	if aBreak.Title == "" || aBreak.Content == "" {
+		response.Client(c, "tile and content cannot be empty")
+		return
+	}
 	aBreak.AccountId = accountId
+	// 创建课间
 	if err := service.CreateBreak(aBreak); err != nil {
 		response.Server(c, err)
 	}
 	response.Ok(c, aBreak)
 }
 
+// AddImageToBreak 添加图片至课间
 func AddImageToBreak(c *gin.Context) {
-	imageBreakBinding := new(entity.ImageBreakBinding)
-	if err := c.BindJSON(imageBreakBinding); err != nil {
-		response.Client(c, err)
-		return
-	}
-	if imageBreakBinding.Order < 0 || imageBreakBinding.Order > 8 {
-		response.Client(c, "order should between 0 and 8")
-	}
+	// 校验cookie
 	accountId, err := GetIdFromCookie(c)
 	if err != nil {
 		response.NLI(c)
 		return
 	}
-	if err = service.BreakExist(imageBreakBinding.BreakId, accountId); err != nil {
+	// 校验JSON
+	vo := new(request.BreakAddImageVO)
+	if err := c.ShouldBindJSON(vo); err != nil {
+		response.Client(c, err)
+		return
+	}
+	breakId := vo.BreakId
+	bindingList := vo.BindingList
+	// 校验break是否存在
+	if !service.BreakExist(breakId, accountId) {
 		response.Client(c, "break does not exist")
 		return
 	}
-	if err = service.AddImageToBreak(imageBreakBinding); err != nil {
+	// 校验binding列表
+	length := len(bindingList)
+	if length < 1 || length > 9 {
+		response.Client(c, "number of pictures should not exceed 9")
+		return
+	}
+	sort.Slice(bindingList, func(i, j int) bool {
+		return bindingList[i].Order < bindingList[j].Order
+	})
+	for i, binding := range bindingList {
+		// binding.order应从0开始不间断
+		if binding.Order != i {
+			response.Client(c, fmt.Sprintf("image(id=%d) order slhould be %d but infact %d", binding.ImageId, i, binding.Order))
+			return
+		}
+		// 校验image是否存在
+		if !service.ImageExist(binding.ImageId) {
+			response.Client(c, fmt.Sprintf("image(id=%d) does not exist", binding.ImageId))
+			return
+		}
+	}
+	// 添加图片至课间
+	if err = service.AddImageToBreak(breakId, bindingList); err != nil {
 		response.Server(c, err.Error())
 		return
 	}

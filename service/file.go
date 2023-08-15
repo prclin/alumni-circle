@@ -26,3 +26,13 @@ func ImageUpload(filename string, file multipart.File) (image *entity.Image, err
 	}
 	return image, err
 }
+
+func ImageExist(id int) bool {
+	image := &entity.Image{
+		Id: id,
+	}
+	if err := entity.GetImage(image); err != nil {
+		return false
+	}
+	return true
+}
