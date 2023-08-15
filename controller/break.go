@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/prclin/alumni-circle/core"
+	"github.com/prclin/alumni-circle/global"
 	"github.com/prclin/alumni-circle/model/entity"
 	"github.com/prclin/alumni-circle/model/request"
 	"github.com/prclin/alumni-circle/model/response"
@@ -85,7 +86,8 @@ func AddImageToBreak(c *gin.Context) {
 	}
 	// 校验binding列表
 	length := len(bindingList)
-	if length < 1 || length > 9 {
+	sizeLimit := global.Configuration.Limit.Size.PictureInBreak
+	if length < 1 || length > sizeLimit {
 		response.Client(c, "number of pictures should not exceed 9")
 		return
 	}
