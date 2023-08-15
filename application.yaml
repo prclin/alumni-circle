@@ -22,4 +22,6 @@ oss:
   bucketName: "alumni-circle"
   path: "development/"
   url: "https://alumni-circle.oss-cn-chengdu.aliyuncs.com"
-
+limit:
+  size:
+    pictureInBreak: 9

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/prclin/alumni-circle/global"
 	"github.com/prclin/alumni-circle/model/entity"
 )
 
@@ -11,7 +12,8 @@ func AddImageToBreak(breakId int, bindingList []entity.ImageBreakBinding) (err e
 			return err
 		}
 	}
-	for order := len(bindingList); order < 9; order++ {
+	sizeLimit := global.Configuration.Limit.Size.PictureInBreak
+	for order := len(bindingList); order < sizeLimit; order++ {
 		binding := &entity.ImageBreakBinding{
 			BreakId: breakId,
 			Order:   order,
