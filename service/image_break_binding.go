@@ -5,13 +5,16 @@ import (
 	"github.com/prclin/alumni-circle/model/entity"
 )
 
+// 添加图片至课间
 func AddImageToBreak(breakId int, bindingList []entity.ImageBreakBinding) (err error) {
+	// 遍历列表,将传入的图片添加至课间
 	for _, binding := range bindingList {
 		binding.BreakId = breakId
 		if err = entity.CreateOrUpdateImageBreakBinding(&binding); err != nil {
 			return err
 		}
 	}
+	// 删除以往图片
 	sizeLimit := global.Configuration.Limit.Size.PictureInBreak
 	for order := len(bindingList); order < sizeLimit; order++ {
 		binding := &entity.ImageBreakBinding{
@@ -27,15 +30,4 @@ func AddImageToBreak(breakId int, bindingList []entity.ImageBreakBinding) (err e
 		}
 	}
 	return nil
-}
-
-func ImageBreakBindingExist(breakId int, order int) bool {
-	binding := &entity.ImageBreakBinding{
-		BreakId: breakId,
-		Order:   order,
-	}
-	if err := entity.GetImageBreakBinding(binding); err != nil {
-		return false
-	}
-	return true
 }

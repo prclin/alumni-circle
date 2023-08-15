@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// ImageUpload 上传图片至OSS并创建图片
 func ImageUpload(filename string, file multipart.File) (image *entity.Image, err error) {
 	// 拼接文件名,格式为 development/yyyy/MM/dd/hh:mm:ss-fileNameMD5.ext
 	filename = global.Configuration.OSS.Path + time.Now().Format("2006/01/02/15:04:05") + "-" + util.StringMD5(filename) + path.Ext(filename)
@@ -20,13 +21,11 @@ func ImageUpload(filename string, file multipart.File) (image *entity.Image, err
 	// 创建image对象存入数据库
 	image = new(entity.Image)
 	image.Url = global.Configuration.OSS.URL + "/" + filename
-	err = entity.CreateImage(image)
-	if err != nil {
-		return nil, err
-	}
+	err = CreateImage(image)
 	return image, err
 }
 
+// ImageExist 图片是否存在
 func ImageExist(id int) bool {
 	image := &entity.Image{
 		Id: id,
@@ -35,4 +34,9 @@ func ImageExist(id int) bool {
 		return false
 	}
 	return true
+}
+
+// CreateImage 创建图片
+func CreateImage(image *entity.Image) error {
+	return entity.CreateImage(image)
 }
