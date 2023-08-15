@@ -44,13 +44,18 @@ func CreateBreak(c *gin.Context) {
 		response.Client(c, err)
 		return
 	}
+	// 校验break是否存在
+	if service.BreakExist(aBreak.Id, accountId) {
+		response.Client(c, fmt.Sprintf("break(id=%d) already exist", aBreak.Id))
+		return
+	}
 	// 校验课间标题,内容不得为空
 	if aBreak.Title == "" || aBreak.Content == "" {
 		response.Client(c, "tile and content cannot be empty")
 		return
 	}
-	aBreak.AccountId = accountId
 	// 创建课间
+	aBreak.AccountId = accountId
 	if err := service.CreateBreak(aBreak); err != nil {
 		response.Server(c, err)
 	}
