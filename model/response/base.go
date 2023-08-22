@@ -2,6 +2,8 @@ package response
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/prclin/alumni-circle/model/po"
 	"net/http"
 )
 
@@ -35,4 +37,10 @@ func Server(c *gin.Context) {
 // Write 自定义写入
 func Write[T any](c *gin.Context, response Response[T]) {
 	c.JSON(http.StatusOK, response)
+}
+
+type TokenClaims struct {
+	jwt.RegisteredClaims
+	po.TAccountInfo
+	RoleIds []uint32 `json:"role_ids"`
 }
