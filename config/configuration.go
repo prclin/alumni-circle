@@ -7,10 +7,12 @@ type Configuration struct {
 	Server     *Server
 	Zap        *Zap
 	Datasource *Datasource
+	Redis      *Redis
 }
 
 var DefaultConfiguration = &Configuration{
 	Server:     DefaultServer,
 	Zap:        DefaultZap,
 	Datasource: DefaultDataSource,
+	Redis:      DefaultRedis,
 }

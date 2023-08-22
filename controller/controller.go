@@ -15,6 +15,6 @@ func Init() {
 
 func init() {
 	core.ContextRouter.GET("/health", func(context *gin.Context) {
-		context.JSON(200, response.Response{Code: 200, Message: "ok"})
+		context.JSON(200, response.Response[any]{Code: 200, Message: "ok"})
 	})
 }
