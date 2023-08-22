@@ -24,7 +24,6 @@ func initGin() {
 		context.JSON(404, response.Response{Code: 404, Message: "Not Found!"})
 	})
 	Router = engine
-	Router = engine
 	ContextRouter = engine.Group(global.Configuration.Server.ContextPath)
 }
 
