@@ -9,8 +9,8 @@ type AccountDao struct {
 	Tx *gorm.DB
 }
 
-func NewAccountDao(tx *gorm.DB) AccountDao {
-	return AccountDao{Tx: tx}
+func NewAccountDao(tx *gorm.DB) *AccountDao {
+	return &AccountDao{Tx: tx}
 }
 
 func (ad *AccountDao) InsertByAccount(account TAccount) (uint64, error) {
@@ -49,7 +49,7 @@ func (aid *AccountInfoDao) InsertByAccountInfo(accountInfo TAccountInfo) error {
 
 func (aid *AccountInfoDao) SelectById(id uint64) (TAccountInfo, error) {
 	var ai TAccountInfo
-	sql := "select id, campus_id, avatar_url, nickname, sex, birthday, extra, create_time, update_time from account_info where id=?"
+	sql := "select id, campus_id, avatar_url, nickname, sex, birthday, follow_count, follower_count, extra, create_time, update_time from account_info where id=?"
 	err := aid.Tx.Raw(sql, id).Scan(&ai).Error
 	return ai, err
 }

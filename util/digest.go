@@ -21,7 +21,6 @@ func MD5(buf []byte) string {
 
 // GenerateToken 生成token
 func GenerateToken(claims response.TokenClaims) (string, error) {
-
 	//加密
 	key, err := parsePrivateKey([]byte(global.Configuration.Jwt.RSA.PrivateKey))
 	token, err := jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(key)
