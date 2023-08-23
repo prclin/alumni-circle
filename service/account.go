@@ -11,3 +11,8 @@ func GetAccountInfo(id uint64) (TAccountInfo, error) {
 	aid := dao.NewAccountInfoDao(Datasource)
 	return aid.SelectById(id)
 }
+
+func UpdateAccountInfo(info TAccountInfo) error {
+	aid := dao.NewAccountInfoDao(Datasource)
+	return aid.UpdateBy(info)
+}

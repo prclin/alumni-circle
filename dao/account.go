@@ -21,7 +21,7 @@ func (ad *AccountDao) InsertByAccount(account TAccount) (uint64, error) {
 		return 0, err
 	}
 	//查询主键
-	if err := ad.Tx.Raw("select LAST_INSERT_ID()").Scan(&id).Error; err != nil {
+	if err := ad.Tx.Raw("select LAST_INSERT_ID()").First(&id).Error; err != nil {
 		return 0, err
 	}
 	return id, nil
@@ -30,7 +30,7 @@ func (ad *AccountDao) InsertByAccount(account TAccount) (uint64, error) {
 func (ad *AccountDao) SelectByEmail(email string) (TAccount, error) {
 	var account TAccount
 	sql := "select id, phone, email, password, state, extra, create_time, update_time from account where email=?"
-	err := ad.Tx.Raw(sql, email).Scan(&account).Error
+	err := ad.Tx.Raw(sql, email).First(&account).Error
 	return account, err
 }
 
@@ -50,6 +50,11 @@ func (aid *AccountInfoDao) InsertByAccountInfo(accountInfo TAccountInfo) error {
 func (aid *AccountInfoDao) SelectById(id uint64) (TAccountInfo, error) {
 	var ai TAccountInfo
 	sql := "select id, campus_id, avatar_url, nickname, sex, birthday, follow_count, follower_count, extra, create_time, update_time from account_info where id=?"
-	err := aid.Tx.Raw(sql, id).Scan(&ai).Error
+	err := aid.Tx.Raw(sql, id).First(&ai).Error
 	return ai, err
+}
+
+func (aid *AccountInfoDao) UpdateBy(info TAccountInfo) error {
+	sql := "update account_info set campus_id=?,avatar_url=?,nickname=?,sex=?,birthday=?,extra=? where id=?"
+	return aid.Tx.Exec(sql, info.CampusId, info.AvatarURL, info.Nickname, info.Sex, info.Birthday, info.Extra, info.Id).Error
 }
