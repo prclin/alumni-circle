@@ -7,6 +7,7 @@ type Configuration struct {
 	Server     *Server
 	Zap        *Zap
 	Datasource *Datasource
+	Email      *Email
 	Redis      *Redis
 	Jwt        *Jwt
 }
@@ -15,6 +16,7 @@ var DefaultConfiguration = &Configuration{
 	Server:     DefaultServer,
 	Zap:        DefaultZap,
 	Datasource: DefaultDataSource,
+	Email:      DefaultEmail,
 	Redis:      DefaultRedis,
 	Jwt:        DefaultJwt,
 }
