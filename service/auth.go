@@ -68,14 +68,6 @@ func EmailSignIn(email, password string) Response[*string] {
 		return Response[*string]{Code: http.StatusBadRequest, Message: "邮箱或密码错误!"}
 	}
 
-	//获取账户信息
-	aid := dao.NewAccountInfoDao(Datasource)
-	tInfo, err := aid.SelectById(tAccount.Id)
-	if err != nil {
-		Logger.Debug(err)
-		return Response[*string]{Code: http.StatusInternalServerError, Message: "服务器内部错误!"}
-	}
-
 	//获取账户角色
 	rd := dao.NewRoleDao(Datasource)
 	bindings, err := rd.SelectBindingByAccountId(tAccount.Id)
@@ -93,7 +85,7 @@ func EmailSignIn(email, password string) Response[*string] {
 	//生成token
 	claims := TokenClaims{
 		RegisteredClaims: jwt.RegisteredClaims{},
-		TAccountInfo:     tInfo,
+		Id:               tAccount.Id,
 		RoleIds:          roleIds,
 	}
 	token, err := util.GenerateToken(claims)
