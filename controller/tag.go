@@ -7,6 +7,7 @@ import (
 	"github.com/prclin/alumni-circle/model/po"
 	. "github.com/prclin/alumni-circle/model/response"
 	"github.com/prclin/alumni-circle/service"
+	"net/http"
 	"strconv"
 )
 
@@ -14,6 +15,7 @@ func init() {
 	tag := core.ContextRouter.Group("/tag")
 	tag.POST("", PostTag)
 	tag.PUT("/:id", PutTag)
+	tag.DELETE("/:id", DeleteTag)
 }
 
 // PostTag 创建兴趣标签
@@ -78,4 +80,23 @@ func PutTag(c *gin.Context) {
 		return
 	}
 	Ok(c, tag)
+}
+
+// DeleteTag 删除tag
+func DeleteTag(c *gin.Context) {
+	//获取参数
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		Logger.Debug(err)
+		Client(c)
+		return
+	}
+	//删除
+	err = service.DeleteTag(uint32(id))
+	if err != nil {
+		Logger.Debug(err)
+		Server(c)
+		return
+	}
+	Write(c, Response[any]{Code: http.StatusOK, Message: "删除成功"})
 }

@@ -43,3 +43,22 @@ func UpdateTag(tag po.TTag) (po.TTag, error) {
 	}
 	return tag, nil
 }
+
+func DeleteTag(id uint32) error {
+	tx := global.Datasource.Begin()
+	defer tx.Commit()
+	td := dao.NewTagDao(tx)
+	//删除关联的
+	err := td.DeleteBindingByTagId(id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	//删除tag
+	err = td.DeleteById(id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	return nil
+}
