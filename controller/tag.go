@@ -20,7 +20,9 @@ func init() {
 func PostTag(c *gin.Context) {
 	//获取参数
 	var body struct {
-		Name string `json:"name" binding:"required"`
+		Name  string  `json:"name" binding:"required"`
+		State *uint8  `json:"state" binding:"required,min=0,max=1"`
+		Extra *string `json:"extra" binding:"omitempty,json"`
 	}
 	err := c.ShouldBindJSON(&body)
 	if err != nil {
@@ -30,7 +32,9 @@ func PostTag(c *gin.Context) {
 	}
 	//创建
 	tag, err := service.CreateTag(po.TTag{
-		Name: body.Name,
+		Name:  body.Name,
+		State: *body.State,
+		Extra: body.Extra,
 	})
 	if err != nil {
 		Logger.Debug(err)
@@ -52,6 +56,7 @@ func PutTag(c *gin.Context) {
 	}
 	var body struct {
 		Name  string  `json:"name" binding:"required"`
+		State *uint8  `json:"state" binding:"required,min=0,max=1"`
 		Extra *string `json:"extra" binding:"omitempty,json"`
 	}
 	err = c.ShouldBindJSON(&body)
@@ -64,6 +69,7 @@ func PutTag(c *gin.Context) {
 	tag, err := service.UpdateTag(po.TTag{
 		Id:    uint32(id),
 		Name:  body.Name,
+		State: *body.State,
 		Extra: body.Extra,
 	})
 	if err != nil {
