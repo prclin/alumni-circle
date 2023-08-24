@@ -34,3 +34,8 @@ func (td *TagDao) SelectById(id uint32) (po.TTag, error) {
 	err := td.Tx.Raw(sql, id).First(&tag).Error
 	return tag, err
 }
+
+func (td *TagDao) UpdateTagBy(tag po.TTag) error {
+	sql := "update tag set name=?,extra=? where id=?"
+	return td.Tx.Exec(sql, tag.Name, tag.Extra, tag.Id).Error
+}
