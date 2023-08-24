@@ -4,11 +4,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prclin/alumni-circle/core"
 	. "github.com/prclin/alumni-circle/global"
+	"github.com/prclin/alumni-circle/model/entity"
 	"github.com/prclin/alumni-circle/model/po"
 	. "github.com/prclin/alumni-circle/model/response"
 	"github.com/prclin/alumni-circle/service"
 	"github.com/prclin/alumni-circle/util"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -16,6 +18,7 @@ func init() {
 	account := core.ContextRouter.Group("/account")
 	account.GET("/info", GetAccountInfo)
 	account.PUT("/info", PutAccountInfo)
+	account.GET("/photo/:id", GetAccountPhoto)
 }
 
 // GetAccountInfo 获取当前登录账户的信息
@@ -93,4 +96,25 @@ func PutAccountInfo(c *gin.Context) {
 		return
 	}
 	Write(c, Response[any]{Code: http.StatusOK, Message: "修改成功"})
+}
+
+// GetAccountPhoto 获取照片墙
+func GetAccountPhoto(c *gin.Context) {
+	//获取参数
+	id := c.Param("id")
+	accountId, err := strconv.ParseUint(id, 10, 64)
+	if err != nil {
+		Logger.Debug(err)
+		Client(c)
+		return
+	}
+
+	//获取照片墙
+	wall, err := service.GetPhotoWall(accountId)
+	if err != nil {
+		Logger.Debug(err)
+		Server(c)
+		return
+	}
+	Ok(c, util.Ternary(len(wall) == 0, []entity.Photo{}, wall))
 }
