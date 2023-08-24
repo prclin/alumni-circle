@@ -1,14 +1,16 @@
 package controller
 
 import (
+	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/prclin/alumni-circle/core"
 	. "github.com/prclin/alumni-circle/global"
 	"github.com/prclin/alumni-circle/model/entity"
-	"github.com/prclin/alumni-circle/model/po"
+	. "github.com/prclin/alumni-circle/model/po"
 	. "github.com/prclin/alumni-circle/model/response"
 	"github.com/prclin/alumni-circle/service"
 	"github.com/prclin/alumni-circle/util"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -19,6 +21,7 @@ func init() {
 	account.GET("/info", GetAccountInfo)
 	account.PUT("/info", PutAccountInfo)
 	account.GET("/photo/:id", GetAccountPhoto)
+	account.PUT("/photo", PutAccountPhoto)
 }
 
 // GetAccountInfo 获取当前登录账户的信息
@@ -81,7 +84,7 @@ func PutAccountInfo(c *gin.Context) {
 	}
 
 	//修改信息
-	err = service.UpdateAccountInfo(po.TAccountInfo{
+	err = service.UpdateAccountInfo(TAccountInfo{
 		Id:        claims.Id,
 		CampusId:  info.CampusId,
 		AvatarURL: info.AvatarURL,
@@ -117,4 +120,39 @@ func GetAccountPhoto(c *gin.Context) {
 		return
 	}
 	Ok(c, util.Ternary(len(wall) == 0, []entity.Photo{}, wall))
+}
+
+// PutAccountPhoto 修改照片墙
+func PutAccountPhoto(c *gin.Context) {
+	//获取token
+	token, err := c.Cookie("token")
+	if err != nil {
+		Logger.Debug(err)
+		Client(c)
+		return
+	}
+	//解析token
+	claims, err := util.ParseToken(token)
+	if err != nil {
+		Logger.Debug(err)
+		Client(c)
+		return
+	}
+	//获取照片墙
+	var photos []TPhotoBinding
+	err = c.ShouldBindJSON(&photos)
+	if err != nil && !errors.Is(err, io.EOF) {
+		Logger.Debug(err)
+		Client(c)
+		return
+	}
+
+	//修改
+	err = service.UpdateAccountPhoto(claims.Id, photos)
+	if err != nil {
+		Logger.Debug(err)
+		Server(c)
+		return
+	}
+	Write(c, Response[any]{Code: http.StatusOK, Message: "修改成功"})
 }
