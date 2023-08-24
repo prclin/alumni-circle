@@ -39,3 +39,13 @@ func (td *TagDao) UpdateTagBy(tag po.TTag) error {
 	sql := "update tag set name=?,state=?,extra=? where id=?"
 	return td.Tx.Exec(sql, tag.Name, tag.State, tag.Extra, tag.Id).Error
 }
+
+func (td *TagDao) DeleteBindingByTagId(tagId uint32) error {
+	sql := "delete from tag_binding where tag_id=?"
+	return td.Tx.Exec(sql, tagId).Error
+}
+
+func (td *TagDao) DeleteById(id uint32) error {
+	sql := "delete from tag where id=?"
+	return td.Tx.Exec(sql, id).Error
+}
