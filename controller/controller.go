@@ -3,7 +3,7 @@ package controller
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/prclin/alumni-circle/core"
-	"github.com/prclin/alumni-circle/model/response"
+	"github.com/prclin/alumni-circle/model"
 )
 
 /*
@@ -15,6 +15,6 @@ func Init() {
 
 func init() {
 	core.ContextRouter.GET("/health", func(context *gin.Context) {
-		context.JSON(200, response.Response[any]{Code: 200, Message: "ok"})
+		context.JSON(200, model.Response[any]{Code: 200, Message: "ok"})
 	})
 }

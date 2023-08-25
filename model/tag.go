@@ -1,7 +1,8 @@
-package po
+package model
 
 import "time"
 
+// TTage 标签表
 type TTag struct {
 	Id         uint32    `json:"id"`
 	Name       string    `json:"name"`
