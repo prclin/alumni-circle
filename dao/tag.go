@@ -49,3 +49,17 @@ func (td *TagDao) DeleteById(id uint32) error {
 	sql := "delete from tag where id=?"
 	return td.Tx.Exec(sql, id).Error
 }
+
+func (td *TagDao) SelectPageByState(state *uint8, offset int, size int) ([]po.TTag, error) {
+	var tags []po.TTag
+	sql := "select id, name, state, extra, create_time, update_time from tag "
+	params := make([]interface{}, 0, 1)
+	if state != nil {
+		sql += "where state=? "
+		params = append(params, state)
+	}
+	sql += "limit ?,?"
+	params = append(params, offset, size)
+	err := td.Tx.Raw(sql, params...).Scan(&tags).Error
+	return tags, err
+}
