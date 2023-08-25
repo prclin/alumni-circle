@@ -4,6 +4,7 @@ import (
 	"github.com/prclin/alumni-circle/dao"
 	"github.com/prclin/alumni-circle/global"
 	"github.com/prclin/alumni-circle/model/po"
+	"github.com/prclin/alumni-circle/model/request"
 )
 
 func CreateTag(tag po.TTag) (po.TTag, error) {
@@ -61,4 +62,9 @@ func DeleteTag(id uint32) error {
 		return err
 	}
 	return nil
+}
+
+func GetTagList(pagination request.Pagination, state *uint8) ([]po.TTag, error) {
+	td := dao.NewTagDao(global.Datasource)
+	return td.SelectPageByState(state, (pagination.Page-1)*pagination.Size, pagination.Size)
 }
