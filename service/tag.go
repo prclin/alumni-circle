@@ -3,11 +3,10 @@ package service
 import (
 	"github.com/prclin/alumni-circle/dao"
 	"github.com/prclin/alumni-circle/global"
-	"github.com/prclin/alumni-circle/model/po"
-	"github.com/prclin/alumni-circle/model/request"
+	"github.com/prclin/alumni-circle/model"
 )
 
-func CreateTag(tag po.TTag) (po.TTag, error) {
+func CreateTag(tag model.TTag) (model.TTag, error) {
 	tx := global.Datasource.Begin()
 	defer tx.Commit()
 	td := dao.NewTagDao(tx)
@@ -26,7 +25,7 @@ func CreateTag(tag po.TTag) (po.TTag, error) {
 	return tag, nil
 }
 
-func UpdateTag(tag po.TTag) (po.TTag, error) {
+func UpdateTag(tag model.TTag) (model.TTag, error) {
 	tx := global.Datasource.Begin()
 	defer tx.Commit()
 	td := dao.NewTagDao(tx)
@@ -64,7 +63,7 @@ func DeleteTag(id uint32) error {
 	return nil
 }
 
-func GetTagList(pagination request.Pagination, state *uint8) ([]po.TTag, error) {
+func GetTagList(pagination model.Pagination, state *uint8) ([]model.TTag, error) {
 	td := dao.NewTagDao(global.Datasource)
 	return td.SelectPageByState(state, (pagination.Page-1)*pagination.Size, pagination.Size)
 }

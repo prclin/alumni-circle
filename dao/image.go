@@ -1,8 +1,7 @@
 package dao
 
 import (
-	"github.com/prclin/alumni-circle/model/entity"
-	"github.com/prclin/alumni-circle/model/po"
+	"github.com/prclin/alumni-circle/model"
 	"gorm.io/gorm"
 	"strings"
 )
@@ -15,8 +14,8 @@ func NewPhotoDao(tx *gorm.DB) *PhotoDao {
 	return &PhotoDao{Tx: tx}
 }
 
-func (pd *PhotoDao) SelectPhotosByAccountId(accountId uint64) ([]entity.Photo, error) {
-	var photos []entity.Photo
+func (pd *PhotoDao) SelectPhotosByAccountId(accountId uint64) ([]model.Photo, error) {
+	var photos []model.Photo
 	sql := "select i.url, pb.`order` from photo_binding as pb left join image as i on pb.image_id=i.id where pb.account_id=? order by pb.`order`"
 	err := pd.Tx.Raw(sql, accountId).Scan(&photos).Error
 	return photos, err
@@ -27,7 +26,7 @@ func (pd *PhotoDao) DeleteByAccountId(accountId uint64) error {
 	return pd.Tx.Exec(sql, accountId).Error
 }
 
-func (pd *PhotoDao) BatchInsertBy(bindings []po.TPhotoBinding) error {
+func (pd *PhotoDao) BatchInsertBy(bindings []model.TPhotoBinding) error {
 	if len(bindings) == 0 {
 		return nil
 	}

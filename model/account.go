@@ -1,7 +1,16 @@
-package po
+package model
 
-import "time"
+import (
+	"time"
+)
 
+// Account 数据实体
+type Account struct {
+	Info       TAccountInfo `json:"info"`
+	IsFollowed bool         `json:"is_followed"`
+}
+
+// TAccount 账户表
 type TAccount struct {
 	Id         uint64
 	Phone      string
@@ -13,6 +22,7 @@ type TAccount struct {
 	UpdateTime time.Time
 }
 
+// TAccountInfo 账户信息表
 type TAccountInfo struct {
 	Id            uint64    `json:"id"`
 	CampusId      uint32    `json:"campus_id"`

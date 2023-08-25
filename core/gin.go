@@ -3,7 +3,7 @@ package core
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/prclin/alumni-circle/global"
-	"github.com/prclin/alumni-circle/model/response"
+	"github.com/prclin/alumni-circle/model"
 	"strconv"
 	"time"
 )
@@ -21,7 +21,7 @@ func initGin() {
 	engine.Use(ginLogger(), gin.Recovery())
 	//404处理
 	engine.NoRoute(func(context *gin.Context) {
-		context.JSON(404, response.Response[any]{Code: 404, Message: "Not Found!"})
+		context.JSON(404, model.Response[any]{Code: 404, Message: "Not Found!"})
 	})
 	Router = engine
 	ContextRouter = engine.Group(global.Configuration.Server.ContextPath)

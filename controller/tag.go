@@ -4,9 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prclin/alumni-circle/core"
 	. "github.com/prclin/alumni-circle/global"
-	"github.com/prclin/alumni-circle/model/po"
-	"github.com/prclin/alumni-circle/model/request"
-	. "github.com/prclin/alumni-circle/model/response"
+	. "github.com/prclin/alumni-circle/model"
 	"github.com/prclin/alumni-circle/service"
 	"github.com/prclin/alumni-circle/util"
 	"net/http"
@@ -25,7 +23,7 @@ func init() {
 func GetTagList(c *gin.Context) {
 	//获取参数
 	var query struct {
-		request.Pagination
+		Pagination
 		State *uint8 `form:"state" binding:"max=1"`
 	}
 	err := c.ShouldBindQuery(&query)
@@ -41,7 +39,7 @@ func GetTagList(c *gin.Context) {
 		Server(c)
 		return
 	}
-	Ok(c, util.Ternary(len(tags) == 0, make([]po.TTag, 0, 0), tags))
+	Ok(c, util.Ternary(len(tags) == 0, make([]TTag, 0, 0), tags))
 }
 
 // PostTag 创建兴趣标签
@@ -59,7 +57,7 @@ func PostTag(c *gin.Context) {
 		return
 	}
 	//创建
-	tag, err := service.CreateTag(po.TTag{
+	tag, err := service.CreateTag(TTag{
 		Name:  body.Name,
 		State: *body.State,
 		Extra: body.Extra,
@@ -94,7 +92,7 @@ func PutTag(c *gin.Context) {
 		return
 	}
 	//修改
-	tag, err := service.UpdateTag(po.TTag{
+	tag, err := service.UpdateTag(TTag{
 		Id:    uint32(id),
 		Name:  body.Name,
 		State: *body.State,

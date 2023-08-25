@@ -9,7 +9,7 @@ import (
 	"errors"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/prclin/alumni-circle/global"
-	"github.com/prclin/alumni-circle/model/response"
+	"github.com/prclin/alumni-circle/model"
 )
 
 // MD5 加密字符串
@@ -20,7 +20,7 @@ func MD5(buf []byte) string {
 }
 
 // GenerateToken 生成token
-func GenerateToken(claims response.TokenClaims) (string, error) {
+func GenerateToken(claims model.TokenClaims) (string, error) {
 	//加密
 	key, err := parsePrivateKey([]byte(global.Configuration.Jwt.RSA.PrivateKey))
 	token, err := jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(key)
@@ -28,8 +28,8 @@ func GenerateToken(claims response.TokenClaims) (string, error) {
 }
 
 // ParseToken 解析token
-func ParseToken(tokenStr string) (*response.TokenClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenStr, &response.TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+func ParseToken(tokenStr string) (*model.TokenClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenStr, &model.TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return parsePublicKey([]byte(global.Configuration.Jwt.RSA.PublicKey))
 	})
 	if err != nil {
@@ -40,7 +40,7 @@ func ParseToken(tokenStr string) (*response.TokenClaims, error) {
 		return nil, errors.New("claims invalid")
 	}
 
-	claims, ok := token.Claims.(*response.TokenClaims)
+	claims, ok := token.Claims.(*model.TokenClaims)
 	if !ok {
 		return nil, errors.New("invalid claim type")
 	}

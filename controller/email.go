@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prclin/alumni-circle/core"
 	. "github.com/prclin/alumni-circle/global"
-	. "github.com/prclin/alumni-circle/model/response"
+	. "github.com/prclin/alumni-circle/model"
 	"github.com/prclin/alumni-circle/service"
 	"regexp"
 )

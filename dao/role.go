@@ -1,7 +1,7 @@
 package dao
 
 import (
-	. "github.com/prclin/alumni-circle/model/po"
+	. "github.com/prclin/alumni-circle/model"
 	"gorm.io/gorm"
 )
 

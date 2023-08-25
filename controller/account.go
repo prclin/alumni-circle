@@ -5,11 +5,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prclin/alumni-circle/core"
 	. "github.com/prclin/alumni-circle/global"
-	"github.com/prclin/alumni-circle/model/entity"
-	. "github.com/prclin/alumni-circle/model/po"
-	. "github.com/prclin/alumni-circle/model/response"
+	"github.com/prclin/alumni-circle/model"
 	"github.com/prclin/alumni-circle/service"
 	"github.com/prclin/alumni-circle/util"
+	"gorm.io/gorm"
 	"io"
 	"net/http"
 	"strconv"
@@ -18,7 +17,7 @@ import (
 
 func init() {
 	account := core.ContextRouter.Group("/account")
-	account.GET("/info", GetAccountInfo)
+	account.GET("/info/:id", GetAccountInfo)
 	account.PUT("/info", PutAccountInfo)
 	account.GET("/photo/:id", GetAccountPhoto)
 	account.PUT("/photo", PutAccountPhoto)
@@ -26,29 +25,40 @@ func init() {
 
 // GetAccountInfo 获取当前登录账户的信息
 func GetAccountInfo(c *gin.Context) {
-	//获取token
-	token, err := c.Cookie("token")
+	//获取id
+	param := c.Param("id")
+	acquiree, err := strconv.ParseUint(param, 10, 64)
 	if err != nil {
 		Logger.Debug(err)
-		Client(c)
+		model.Client(c)
 		return
 	}
-	//解析token
-	claims, err := util.ParseToken(token)
-	if err != nil {
-		Logger.Debug(err)
-		Client(c)
-		return
+	var acquirer uint64
+	//获取token
+	token, err := c.Cookie("token")
+	if err == nil { //有token
+		//解析token
+		claims, err1 := util.ParseToken(token)
+		if err1 != nil { //token错误
+			Logger.Debug(err1)
+			model.Client(c)
+			return
+		}
+		acquirer = claims.Id
 	}
 
 	//获取账户信息
-	info, err := service.GetAccountInfo(claims.Id)
+	account, err := service.GetAccountInfo(acquirer, acquiree)
 	if err != nil {
 		Logger.Debug(err)
-		Server(c)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			model.Client(c)
+		} else {
+			model.Server(c)
+		}
 		return
 	}
-	Ok(c, info)
+	model.Ok(c, account)
 }
 
 // PutAccountInfo 修改账户信息
@@ -57,14 +67,14 @@ func PutAccountInfo(c *gin.Context) {
 	token, err := c.Cookie("token")
 	if err != nil {
 		Logger.Debug(err)
-		Client(c)
+		model.Client(c)
 		return
 	}
 	//解析token
 	claims, err := util.ParseToken(token)
 	if err != nil {
 		Logger.Debug(err)
-		Client(c)
+		model.Client(c)
 		return
 	}
 	//参数绑定
@@ -79,12 +89,12 @@ func PutAccountInfo(c *gin.Context) {
 	err = c.ShouldBindJSON(&info)
 	if err != nil {
 		Logger.Debug(err)
-		Client(c)
+		model.Client(c)
 		return
 	}
 
 	//修改信息
-	err = service.UpdateAccountInfo(TAccountInfo{
+	err = service.UpdateAccountInfo(model.TAccountInfo{
 		Id:        claims.Id,
 		CampusId:  info.CampusId,
 		AvatarURL: info.AvatarURL,
@@ -95,10 +105,10 @@ func PutAccountInfo(c *gin.Context) {
 	})
 	if err != nil {
 		Logger.Debug(err)
-		Server(c)
+		model.Server(c)
 		return
 	}
-	Write(c, Response[any]{Code: http.StatusOK, Message: "修改成功"})
+	model.Write(c, model.Response[any]{Code: http.StatusOK, Message: "修改成功"})
 }
 
 // GetAccountPhoto 获取照片墙
@@ -108,7 +118,7 @@ func GetAccountPhoto(c *gin.Context) {
 	accountId, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
 		Logger.Debug(err)
-		Client(c)
+		model.Client(c)
 		return
 	}
 
@@ -116,10 +126,10 @@ func GetAccountPhoto(c *gin.Context) {
 	wall, err := service.GetPhotoWall(accountId)
 	if err != nil {
 		Logger.Debug(err)
-		Server(c)
+		model.Server(c)
 		return
 	}
-	Ok(c, util.Ternary(len(wall) == 0, []entity.Photo{}, wall))
+	model.Ok(c, util.Ternary(len(wall) == 0, []model.Photo{}, wall))
 }
 
 // PutAccountPhoto 修改照片墙
@@ -128,22 +138,22 @@ func PutAccountPhoto(c *gin.Context) {
 	token, err := c.Cookie("token")
 	if err != nil {
 		Logger.Debug(err)
-		Client(c)
+		model.Client(c)
 		return
 	}
 	//解析token
 	claims, err := util.ParseToken(token)
 	if err != nil {
 		Logger.Debug(err)
-		Client(c)
+		model.Client(c)
 		return
 	}
 	//获取照片墙
-	var photos []TPhotoBinding
+	var photos []model.TPhotoBinding
 	err = c.ShouldBindJSON(&photos)
 	if err != nil && !errors.Is(err, io.EOF) {
 		Logger.Debug(err)
-		Client(c)
+		model.Client(c)
 		return
 	}
 
@@ -151,8 +161,8 @@ func PutAccountPhoto(c *gin.Context) {
 	err = service.UpdateAccountPhoto(claims.Id, photos)
 	if err != nil {
 		Logger.Debug(err)
-		Server(c)
+		model.Server(c)
 		return
 	}
-	Write(c, Response[any]{Code: http.StatusOK, Message: "修改成功"})
+	model.Write(c, model.Response[any]{Code: http.StatusOK, Message: "修改成功"})
 }

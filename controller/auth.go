@@ -4,8 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prclin/alumni-circle/core"
 	. "github.com/prclin/alumni-circle/global"
-	"github.com/prclin/alumni-circle/model/po"
-	. "github.com/prclin/alumni-circle/model/response"
+	"github.com/prclin/alumni-circle/model"
 	"github.com/prclin/alumni-circle/service"
 	"net/http"
 )
@@ -32,17 +31,17 @@ func EmailSignUp(c *gin.Context) {
 	err := c.ShouldBindJSON(&body)
 	if err != nil {
 		Logger.Debug(err)
-		Client(c)
+		model.Client(c)
 		return
 	}
 
 	//注册逻辑
-	account := po.TAccount{
+	account := model.TAccount{
 		Email:    body.Email,
 		Password: body.Password,
 	}
 	res := service.EmailSignUp(account, body.Captcha)
-	Write(c, res)
+	model.Write(c, res)
 }
 
 /*
@@ -59,7 +58,7 @@ func EmailSignIn(c *gin.Context) {
 	err := c.ShouldBindJSON(&body)
 	if err != nil {
 		Logger.Debug(err)
-		Client(c)
+		model.Client(c)
 		return
 	}
 
@@ -69,5 +68,5 @@ func EmailSignIn(c *gin.Context) {
 	if res.Code == http.StatusOK {
 		c.SetCookie("token", *res.Data, -1, "/", "*", false, false)
 	}
-	Write(c, res)
+	model.Write(c, res)
 }
