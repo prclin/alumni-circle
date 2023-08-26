@@ -3,6 +3,7 @@ package dao
 import (
 	"github.com/prclin/alumni-circle/model"
 	"gorm.io/gorm"
+	"strings"
 )
 
 type TagDao struct {
@@ -61,5 +62,31 @@ func (td *TagDao) SelectPageByState(state *uint8, offset int, size int) ([]model
 	sql += "limit ?,?"
 	params = append(params, offset, size)
 	err := td.Tx.Raw(sql, params...).Scan(&tags).Error
+	return tags, err
+}
+
+func (td *TagDao) DeleteBindingByAccountId(accountId uint64) error {
+	sql := "delete from tag_binding where account_id=?"
+	return td.Tx.Exec(sql, accountId).Error
+}
+
+func (td *TagDao) BatchInsertBindingBy(bindings []model.TTagBinding) error {
+	if len(bindings) == 0 {
+		return nil
+	}
+	sql := "insert into tag_binding(account_id, tag_id) VALUES " //goland报错，忽略
+	params := make([]interface{}, 0, 0)
+	for _, binding := range bindings {
+		sql += "(?,?),"
+		params = append(params, binding.AccountId, binding.TagId)
+	}
+	sql = strings.TrimSuffix(sql, ",")
+	return td.Tx.Exec(sql, params...).Error
+}
+
+func (td *TagDao) SelectEnabledByIds(ids []uint32) ([]model.TTag, error) {
+	var tags []model.TTag
+	sql := "select id, name, state, extra, create_time, update_time from tag where id in ? and state=1"
+	err := td.Tx.Raw(sql, ids).Scan(&tags).Error
 	return tags, err
 }
