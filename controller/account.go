@@ -21,6 +21,45 @@ func init() {
 	account.PUT("/info", PutAccountInfo)
 	account.GET("/photo/:id", GetAccountPhoto)
 	account.PUT("/photo", PutAccountPhoto)
+	account.PUT("/tag", PutAccountTag)
+}
+
+// PutAccountTag 修改兴趣标签
+func PutAccountTag(c *gin.Context) {
+	//获取token
+	token, err := c.Cookie("token")
+	if err != nil {
+		Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//解析token
+	claims, err := util.ParseToken(token)
+	if err != nil {
+		Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//获取标签列表
+	var tags []uint32
+	err = c.ShouldBindJSON(&tags)
+	if err != nil {
+		if err == io.EOF {
+			tags = make([]uint32, 0, 0)
+		} else {
+			Logger.Debug(err)
+			model.Client(c)
+			return
+		}
+	}
+	//修改
+	tag, err := service.UpdateAccountTag(claims.Id, tags)
+	if err != nil {
+		Logger.Debug(err)
+		model.Server(c)
+		return
+	}
+	model.Ok(c, tag)
 }
 
 // GetAccountInfo 获取当前登录账户的信息
