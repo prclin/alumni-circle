@@ -6,6 +6,35 @@ import (
 	"strings"
 )
 
+type ImageDao struct {
+	Tx *gorm.DB
+}
+
+func NewImageDao(tx *gorm.DB) *ImageDao {
+	return &ImageDao{Tx: tx}
+}
+
+func (imageDao *ImageDao) InsertBy(image model.TImage) (uint64, error) {
+	var id uint64
+	sql := "insert into image(url, extra) value (?,?)"
+	//插入
+	if err := imageDao.Tx.Exec(sql, image.URL, image.Extra).Error; err != nil {
+		return 0, err
+	}
+	//获取主键
+	if err := imageDao.Tx.Raw("select LAST_INSERT_ID()").First(&id).Error; err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+func (imageDao *ImageDao) SelectById(id uint64) (model.TImage, error) {
+	var image model.TImage
+	sql := "select id, url, extra, create_time, update_time from image where id=?"
+	err := imageDao.Tx.Raw(sql, id).First(&image).Error
+	return image, err
+}
+
 type PhotoDao struct {
 	Tx *gorm.DB
 }

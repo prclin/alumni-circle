@@ -10,6 +10,7 @@ type Configuration struct {
 	Email      *Email
 	Redis      *Redis
 	Jwt        *Jwt
+	OSS        *OSS
 }
 
 var DefaultConfiguration = &Configuration{
@@ -19,4 +20,5 @@ var DefaultConfiguration = &Configuration{
 	Email:      DefaultEmail,
 	Redis:      DefaultRedis,
 	Jwt:        DefaultJwt,
+	OSS:        DefaultOSS,
 }
