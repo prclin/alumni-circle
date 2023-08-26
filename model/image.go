@@ -1,5 +1,16 @@
 package model
 
+import "time"
+
+// TImage 图片表
+type TImage struct {
+	Id         uint64
+	URL        string
+	Extra      *string
+	CreateTime time.Time
+	UpdateTime time.Time
+}
+
 // Photo 照片
 type Photo struct {
 	URL   string `json:"url"`
