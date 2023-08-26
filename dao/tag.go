@@ -90,3 +90,10 @@ func (td *TagDao) SelectEnabledByIds(ids []uint32) ([]model.TTag, error) {
 	err := td.Tx.Raw(sql, ids).Scan(&tags).Error
 	return tags, err
 }
+
+func (td *TagDao) SelectEnabledByAccountId(accountId uint64) ([]model.TTag, error) {
+	var tags []model.TTag
+	sql := "select tag.id, tag.name, tag.state, tag.extra, tag.create_time, tag.update_time from tag_binding tb inner join tag  on tag.id = tb.tag_id where tb.account_id=? and state=1"
+	err := td.Tx.Raw(sql, accountId).Scan(&tags).Error
+	return tags, err
+}

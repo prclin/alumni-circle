@@ -6,6 +6,15 @@ import (
 	"github.com/prclin/alumni-circle/model"
 )
 
+func GetAccountTag(id uint64) ([]model.TTag, error) {
+	td := dao.NewTagDao(Datasource)
+	tags, err := td.SelectEnabledByAccountId(id)
+	if tags == nil {
+		tags = make([]model.TTag, 0, 0)
+	}
+	return tags, err
+}
+
 func UpdateAccountTag(id uint64, tagIds []uint32) ([]model.TTag, error) {
 	tx := Datasource.Begin()
 	defer tx.Commit()
@@ -32,7 +41,6 @@ func UpdateAccountTag(id uint64, tagIds []uint32) ([]model.TTag, error) {
 		tx.Rollback()
 		return nil, err
 	}
-	//如果绑定的标签
 	if tags == nil {
 		tags = make([]model.TTag, 0, 0)
 	}

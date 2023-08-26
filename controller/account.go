@@ -22,6 +22,26 @@ func init() {
 	account.GET("/photo/:id", GetAccountPhoto)
 	account.PUT("/photo", PutAccountPhoto)
 	account.PUT("/tag", PutAccountTag)
+	account.GET("/tag/:id", GetAccountTag)
+}
+
+// GetAccountTag 获取账户兴趣标签
+func GetAccountTag(c *gin.Context) {
+	//获取id
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+
+	tags, err := service.GetAccountTag(id)
+	if err != nil {
+		Logger.Debug(err)
+		model.Server(c)
+		return
+	}
+	model.Ok(c, tags)
 }
 
 // PutAccountTag 修改兴趣标签
