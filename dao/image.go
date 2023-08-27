@@ -68,3 +68,35 @@ func (pd *PhotoDao) BatchInsertBy(bindings []model.TPhotoBinding) error {
 	sql = strings.TrimSuffix(sql, ",")
 	return pd.Tx.Exec(sql, params...).Error
 }
+
+type ShotDao struct {
+	Tx *gorm.DB
+}
+
+func NewShotDao(tx *gorm.DB) *ShotDao {
+	return &ShotDao{Tx: tx}
+}
+
+func (sd *ShotDao) BatchInsertBy(bindings []model.TShotBinding) error {
+	if len(bindings) == 0 {
+		return nil
+	}
+	sql := "insert into shot_binding(break_id, image_id, `order`) values" //此处为goland报错
+	params := make([]interface{}, 0, len(bindings))
+	for _, binding := range bindings {
+		sql += "(?,?,?),"
+		params = append(params, binding.BreakId, binding.ImageId, binding.Order)
+	}
+	sql = strings.TrimSuffix(sql, ",")
+	return sd.Tx.Exec(sql, params...).Error
+}
+
+func (sd *ShotDao) SelectShotsByBreakId(breakId uint64) ([]model.Shot, error) {
+	var shots []model.Shot
+	sql := "select i.url, sb.`order` from shot_binding as sb left join image as i on sb.image_id=i.id where sb.break_id=? order by sb.`order`"
+	err := sd.Tx.Raw(sql, breakId).Scan(&shots).Error
+	if shots == nil {
+		shots = make([]model.Shot, 0, 0)
+	}
+	return shots, err
+}

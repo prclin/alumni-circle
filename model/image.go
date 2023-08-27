@@ -23,3 +23,16 @@ type TPhotoBinding struct {
 	ImageId   uint64 `json:"image_id" binding:"required"`
 	Order     uint8  `json:"order" binding:"required"`
 }
+
+// Shot 镜头
+type Shot struct {
+	URL   string `json:"url"`
+	Order uint8  `json:"order"`
+}
+
+// TShotBinding 照片绑定
+type TShotBinding struct {
+	BreakId uint64
+	ImageId uint64
+	Order   uint8
+}
