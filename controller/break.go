@@ -15,6 +15,35 @@ func init() {
 	_break := core.ContextRouter.Group("/break")
 	_break.POST("", PostBreak)
 	_break.PUT("/:id", PutBreak)
+	_break.DELETE("/:id", DeleteBreak)
+}
+
+// DeleteBreak 删除课间
+//
+// 只能删除账户自己发布的课间，如果删除其他人的课间，不会报错，但是删除不成功
+func DeleteBreak(c *gin.Context) {
+	//获取并解析token
+	claims, err := util.ParseToken(util.IgnoreError(c.Cookie("token")))
+	if err != nil {
+		global.Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//获取id
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		global.Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//删除
+	err = service.DeleteBreak(model.TBreak{Id: id, AccountId: claims.Id})
+	if err != nil {
+		global.Logger.Debug(err)
+		model.Server(c)
+		return
+	}
+	model.Write(c, model.Response[any]{Code: http.StatusOK, Message: "删除成功"})
 }
 
 // PutBreak 更新课间
