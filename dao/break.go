@@ -38,3 +38,8 @@ func (bd *BreakDao) UpdateVisibilityBy(tBreak model.TBreak) error {
 	sql := "update break set visibility=? where id=? and account_id=?"
 	return bd.Tx.Exec(sql, tBreak.Visibility, tBreak.Id, tBreak.AccountId).Error
 }
+
+func (bd *BreakDao) DeleteByIdAndAccountId(id, accountId uint64) error {
+	sql := "delete from break where id=? and account_id=?"
+	return bd.Tx.Exec(sql, id, accountId).Error
+}

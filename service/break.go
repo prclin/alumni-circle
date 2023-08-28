@@ -6,6 +6,11 @@ import (
 	"github.com/prclin/alumni-circle/model"
 )
 
+func DeleteBreak(tBreak model.TBreak) error {
+	breakDao := dao.NewBreakDao(global.Datasource)
+	return breakDao.DeleteByIdAndAccountId(tBreak.Id, tBreak.AccountId)
+}
+
 func UpdateBreakVisibility(tBreak model.TBreak) error {
 	bd := dao.NewBreakDao(global.Datasource)
 	return bd.UpdateVisibilityBy(tBreak)
