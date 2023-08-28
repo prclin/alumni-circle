@@ -33,3 +33,8 @@ func (bd *BreakDao) SelectById(id uint64) (model.TBreak, error) {
 	err := bd.Tx.Raw(sql, id).First(&tBreak).Error
 	return tBreak, err
 }
+
+func (bd *BreakDao) UpdateVisibilityBy(tBreak model.TBreak) error {
+	sql := "update break set visibility=? where id=? and account_id=?"
+	return bd.Tx.Exec(sql, tBreak.Visibility, tBreak.Id, tBreak.AccountId).Error
+}

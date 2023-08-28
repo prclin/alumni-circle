@@ -7,11 +7,53 @@ import (
 	"github.com/prclin/alumni-circle/model"
 	"github.com/prclin/alumni-circle/service"
 	"github.com/prclin/alumni-circle/util"
+	"net/http"
+	"strconv"
 )
 
 func init() {
 	_break := core.ContextRouter.Group("/break")
 	_break.POST("", PostBreak)
+	_break.PUT("/:id", PutBreak)
+}
+
+// PutBreak 更新课间
+//
+// 目前暂时只支持更新可见性
+//
+// 只能更新自己帖子的可见性，如果更新的是别人的帖子不会返回错误，但更新不会成功
+func PutBreak(c *gin.Context) {
+	//获取id
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		global.Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//获取并解析token
+	claims, err := util.ParseToken(util.IgnoreError(c.Cookie("token")))
+	if err != nil {
+		global.Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//获取参数
+	var body struct {
+		Visibility *uint8 `json:"visibility" binding:"required,min=0,max=3"`
+	}
+	err = c.ShouldBindJSON(&body)
+	if err != nil {
+		global.Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//更新
+	err = service.UpdateBreakVisibility(model.TBreak{Id: id, AccountId: claims.Id, Visibility: *body.Visibility})
+	if err != nil {
+		model.Server(c)
+		return
+	}
+	model.Write(c, model.Response[any]{Code: http.StatusOK, Message: "更新成功"})
 }
 
 // PostBreak 发布课间

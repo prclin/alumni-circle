@@ -6,6 +6,11 @@ import (
 	"github.com/prclin/alumni-circle/model"
 )
 
+func UpdateBreakVisibility(tBreak model.TBreak) error {
+	bd := dao.NewBreakDao(global.Datasource)
+	return bd.UpdateVisibilityBy(tBreak)
+}
+
 func PublishBreak(tBreak model.TBreak, shotIds, topicIds []uint64) (model.Break, error) {
 	tx := global.Datasource.Begin()
 	defer tx.Commit()
