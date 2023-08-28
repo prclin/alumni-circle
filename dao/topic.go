@@ -14,7 +14,7 @@ func NewTopicDao(tx *gorm.DB) *TopicDao {
 	return &TopicDao{Tx: tx}
 }
 
-func (td *TopicDao) BatchInsertBy(bindings []model.TTopicBinding) error {
+func (td *TopicDao) BatchInsertBindingBy(bindings []model.TTopicBinding) error {
 	if len(bindings) == 0 {
 		return nil
 	}
@@ -36,4 +36,25 @@ func (td *TopicDao) SelectTopicsByBreakId(breakId uint64) ([]model.TTopic, error
 		topics = make([]model.TTopic, 0, 0)
 	}
 	return topics, err
+}
+
+func (td *TopicDao) InsertBy(topic model.TTopic) (uint64, error) {
+	var id uint64
+	sql := "insert into topic(name, extra) value (?,?)"
+	//插入数据
+	if err := td.Tx.Exec(sql, topic.Name, topic.Extra).Error; err != nil {
+		return 0, err
+	}
+	//查询主键
+	if err := td.Tx.Raw("select LAST_INSERT_ID()").First(&id).Error; err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+func (td *TopicDao) SelectById(id uint64) (model.TTopic, error) {
+	var topic model.TTopic
+	sql := "select id, name, extra, create_time, update_time from topic where id=?"
+	err := td.Tx.Raw(sql, id).First(&topic).Error
+	return topic, err
 }

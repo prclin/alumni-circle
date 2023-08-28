@@ -33,7 +33,7 @@ func PublishBreak(tBreak model.TBreak, shotIds, topicIds []uint64) (model.Break,
 		topicBindings = append(topicBindings, model.TTopicBinding{BreakId: breakId, TopicId: topicId})
 	}
 	td := dao.NewTopicDao(tx)
-	err = td.BatchInsertBy(topicBindings)
+	err = td.BatchInsertBindingBy(topicBindings)
 	if err != nil {
 		tx.Rollback()
 		return model.Break{}, err
