@@ -17,6 +17,26 @@ func init() {
 	auth.POST("/api", PostAPI)
 	auth.PUT("/api/:id", PutAPI)
 	auth.DELETE("/api/:id", DeleteAPI)
+	auth.GET("/api/list", GetAPIList)
+}
+
+// GetAPIList 获取接口列表
+func GetAPIList(c *gin.Context) {
+	//获取分页
+	var query model.Pagination
+	err := c.ShouldBindQuery(&query)
+	if err != nil {
+		Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	apiList, err := service.GetAPIList(query)
+	if err != nil {
+		Logger.Debug(err)
+		model.Server(c)
+		return
+	}
+	model.Ok(c, apiList)
 }
 
 // DeleteAPI 删除接口

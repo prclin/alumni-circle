@@ -46,3 +46,13 @@ func (ad *APIDao) DeleteById(id uint32) error {
 	sql := "delete from api where id=?"
 	return ad.Tx.Exec(sql, id).Error
 }
+
+func (ad *APIDao) SelectPageBy(offset, size int) ([]model.TAPI, error) {
+	var apis []model.TAPI
+	sql := "select id, name, method, path, description, state, extra, create_time, update_time from api limit ?,?"
+	err := ad.Tx.Raw(sql, offset, size).Scan(&apis).Error
+	if apis == nil {
+		apis = make([]model.TAPI, 0, 0)
+	}
+	return apis, err
+}
