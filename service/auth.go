@@ -13,12 +13,31 @@ import (
 	"net/http"
 )
 
-func CreateRole(trole model.TRole) (model.TRole, error) {
+func UpdateRole(tRole model.TRole) (model.TRole, error) {
+	tx := Datasource.Begin()
+	defer tx.Commit()
+	roleDao := dao.NewRoleDao(tx)
+	//更新
+	err := roleDao.UpdateBy(tRole)
+	if err != nil {
+		tx.Rollback()
+		return model.TRole{}, err
+	}
+	//获取
+	role, err := roleDao.SelectById(tRole.Id)
+	if err != nil {
+		tx.Rollback()
+		return model.TRole{}, err
+	}
+	return role, nil
+}
+
+func CreateRole(tRole model.TRole) (model.TRole, error) {
 	tx := Datasource.Begin()
 	defer tx.Commit()
 	roleDao := dao.NewRoleDao(tx)
 	//插入
-	id, err := roleDao.InsertBy(trole)
+	id, err := roleDao.InsertBy(tRole)
 	if err != nil {
 		tx.Rollback()
 		return model.TRole{}, err
