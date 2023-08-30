@@ -13,6 +13,25 @@ import (
 	"net/http"
 )
 
+func UpdateAPI(tapi model.TAPI) (model.TAPI, error) {
+	tx := Datasource.Begin()
+	defer tx.Commit()
+	apiDao := dao.NewAPIDao(tx)
+	//更新
+	err := apiDao.UpdateBy(tapi)
+	if err != nil {
+		tx.Rollback()
+		return model.TAPI{}, err
+	}
+	//获取最新的api
+	api, err := apiDao.SelectById(tapi.Id)
+	if err != nil {
+		tx.Rollback()
+		return model.TAPI{}, err
+	}
+	return api, nil
+}
+
 func CreateAPI(tapi model.TAPI) (model.TAPI, error) {
 	tx := Datasource.Begin()
 	defer tx.Commit()

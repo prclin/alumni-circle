@@ -7,6 +7,7 @@ import (
 	"github.com/prclin/alumni-circle/model"
 	"github.com/prclin/alumni-circle/service"
 	"net/http"
+	"strconv"
 )
 
 func init() {
@@ -14,6 +15,49 @@ func init() {
 	auth.POST("/sign_up", EmailSignUp) //邮箱注册
 	auth.PUT("/sign_in", EmailSignIn)  //邮箱登录
 	auth.POST("/api", PostAPI)
+	auth.PUT("/api/:id", PutAPI)
+}
+
+// PutAPI 修改接口
+func PutAPI(c *gin.Context) {
+	//获取id
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//获取参数
+	var body struct {
+		Name        string  `json:"name" binding:"required"`
+		Method      string  `json:"method" binding:"required"`
+		Path        string  `json:"path" binding:"required"`
+		Description string  `json:"description"  binding:"omitempty"`
+		State       *uint8  `json:"state" binding:"required"`
+		Extra       *string `json:"extra" binding:"omitempty"`
+	}
+	err = c.ShouldBindJSON(&body)
+	if err != nil {
+		Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//更新
+	api, err := service.UpdateAPI(model.TAPI{
+		Id:          uint32(id),
+		Name:        body.Name,
+		Method:      body.Method,
+		Path:        body.Path,
+		Description: body.Description,
+		State:       *body.State,
+		Extra:       body.Extra,
+	})
+	if err != nil {
+		Logger.Debug(err)
+		model.Server(c)
+		return
+	}
+	model.Ok(c, api)
 }
 
 // PostAPI 创建接口
