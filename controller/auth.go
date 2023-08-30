@@ -19,16 +19,55 @@ func init() {
 	auth.DELETE("/api/:id", DeleteAPI)
 	auth.GET("/api/list", GetAPIList)
 	auth.POST("/role", PostRole)
+	auth.PUT("/role/:id", PutRole)
+}
+
+// PutRole 更新角色
+func PutRole(c *gin.Context) {
+	//获取id
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//获取参数
+	var body struct {
+		Name        string  `json:"name" binding:"required"`
+		Identifier  string  `json:"identifier" binding:"required"`
+		Description *string `json:"description" binding:"required"`
+		State       *uint8  `json:"state" binding:"required"`
+	}
+	err = c.ShouldBindJSON(&body)
+	if err != nil {
+		Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//更新
+	role, err := service.UpdateRole(model.TRole{
+		Id:          uint32(id),
+		Name:        body.Name,
+		Identifier:  body.Identifier,
+		Description: *body.Description,
+		State:       *body.State,
+	})
+	if err != nil {
+		Logger.Debug(err)
+		model.Server(c)
+		return
+	}
+	model.Ok(c, role)
 }
 
 // PostRole 创建角色
 func PostRole(c *gin.Context) {
 	//获取参数
 	var body struct {
-		Name        string `json:"name" binding:"required"`
-		Identifier  string `json:"identifier" binding:"required"`
-		Description string `json:"description" binding:"required"`
-		State       *uint8 `json:"state" binding:"required"`
+		Name        string  `json:"name" binding:"required"`
+		Identifier  string  `json:"identifier" binding:"required"`
+		Description *string `json:"description" binding:"required"`
+		State       *uint8  `json:"state" binding:"required"`
 	}
 	err := c.ShouldBindJSON(&body)
 	if err != nil {
@@ -40,7 +79,7 @@ func PostRole(c *gin.Context) {
 	role, err := service.CreateRole(model.TRole{
 		Name:        body.Name,
 		Identifier:  body.Identifier,
-		Description: body.Description,
+		Description: *body.Description,
 		State:       *body.State,
 	})
 	if err != nil {

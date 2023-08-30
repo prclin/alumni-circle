@@ -40,3 +40,8 @@ func (rd *RoleDao) SelectById(id uint32) (TRole, error) {
 	err := rd.Tx.Raw(sql, id).First(&role).Error
 	return role, err
 }
+
+func (rd *RoleDao) UpdateBy(tRole TRole) error {
+	sql := "update role set name=?,identifier=?,description=?,state=? where id=?"
+	return rd.Tx.Exec(sql, tRole.Name, tRole.Identifier, tRole.Description, tRole.State, tRole.Id).Error
+}
