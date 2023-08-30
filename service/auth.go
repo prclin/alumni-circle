@@ -13,6 +13,25 @@ import (
 	"net/http"
 )
 
+func CreateRole(trole model.TRole) (model.TRole, error) {
+	tx := Datasource.Begin()
+	defer tx.Commit()
+	roleDao := dao.NewRoleDao(tx)
+	//插入
+	id, err := roleDao.InsertBy(trole)
+	if err != nil {
+		tx.Rollback()
+		return model.TRole{}, err
+	}
+	//获取
+	role, err := roleDao.SelectById(id)
+	if err != nil {
+		tx.Rollback()
+		return model.TRole{}, err
+	}
+	return role, nil
+}
+
 func GetAPIList(pagination model.Pagination) ([]model.TAPI, error) {
 	apiDao := dao.NewAPIDao(Datasource)
 	return apiDao.SelectPageBy((pagination.Page-1)*pagination.Size, pagination.Size)

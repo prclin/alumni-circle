@@ -18,6 +18,37 @@ func init() {
 	auth.PUT("/api/:id", PutAPI)
 	auth.DELETE("/api/:id", DeleteAPI)
 	auth.GET("/api/list", GetAPIList)
+	auth.POST("/role", PostRole)
+}
+
+// PostRole 创建角色
+func PostRole(c *gin.Context) {
+	//获取参数
+	var body struct {
+		Name        string `json:"name" binding:"required"`
+		Identifier  string `json:"identifier" binding:"required"`
+		Description string `json:"description" binding:"required"`
+		State       *uint8 `json:"state" binding:"required"`
+	}
+	err := c.ShouldBindJSON(&body)
+	if err != nil {
+		Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//创建
+	role, err := service.CreateRole(model.TRole{
+		Name:        body.Name,
+		Identifier:  body.Identifier,
+		Description: body.Description,
+		State:       *body.State,
+	})
+	if err != nil {
+		Logger.Debug(err)
+		model.Server(c)
+		return
+	}
+	model.Ok(c, role)
 }
 
 // GetAPIList 获取接口列表
