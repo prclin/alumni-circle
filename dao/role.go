@@ -45,3 +45,13 @@ func (rd *RoleDao) UpdateBy(tRole TRole) error {
 	sql := "update role set name=?,identifier=?,description=?,state=? where id=?"
 	return rd.Tx.Exec(sql, tRole.Name, tRole.Identifier, tRole.Description, tRole.State, tRole.Id).Error
 }
+
+func (rd *RoleDao) DeleteBindingByRoleId(roleId uint32) error {
+	sql := "delete from role_binding where role_id=?"
+	return rd.Tx.Exec(sql, roleId).Error
+}
+
+func (rd *RoleDao) DeleteById(id uint32) error {
+	sql := "delete from role where id=?"
+	return rd.Tx.Exec(sql, id).Error
+}

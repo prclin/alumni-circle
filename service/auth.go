@@ -13,6 +13,25 @@ import (
 	"net/http"
 )
 
+func DeleteRole(id uint32) error {
+	tx := Datasource.Begin()
+	defer tx.Commit()
+	roleDao := dao.NewRoleDao(tx)
+	//删除绑定
+	err := roleDao.DeleteBindingByRoleId(id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	//删除角色
+	err = roleDao.DeleteById(id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	return nil
+}
+
 func UpdateRole(tRole model.TRole) (model.TRole, error) {
 	tx := Datasource.Begin()
 	defer tx.Commit()

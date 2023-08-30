@@ -20,6 +20,26 @@ func init() {
 	auth.GET("/api/list", GetAPIList)
 	auth.POST("/role", PostRole)
 	auth.PUT("/role/:id", PutRole)
+	auth.DELETE("/role/:id", DeleteRole)
+}
+
+// DeleteRole 删除角色
+func DeleteRole(c *gin.Context) {
+	//获取id
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//删除
+	err = service.DeleteRole(uint32(id))
+	if err != nil {
+		Logger.Debug(err)
+		model.Server(c)
+		return
+	}
+	model.Write(c, model.Response[any]{Code: http.StatusOK, Message: "删除成功"})
 }
 
 // PutRole 更新角色
