@@ -13,6 +13,11 @@ import (
 	"net/http"
 )
 
+func GetAPIList(pagination model.Pagination) ([]model.TAPI, error) {
+	apiDao := dao.NewAPIDao(Datasource)
+	return apiDao.SelectPageBy((pagination.Page-1)*pagination.Size, pagination.Size)
+}
+
 func DeleteAPI(id uint32) error {
 	tx := Datasource.Begin()
 	defer tx.Commit()
