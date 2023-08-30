@@ -31,3 +31,8 @@ func (ad *APIDao) SelectById(id uint32) (model.TAPI, error) {
 	err := ad.Tx.Raw(sql, id).First(&api).Error
 	return api, err
 }
+
+func (ad *APIDao) UpdateBy(tapi model.TAPI) error {
+	sql := "update api set name=?,method=?,path=?,description=?,state=?,extra=? where id=?"
+	return ad.Tx.Exec(sql, tapi.Name, tapi.Method, tapi.Path, tapi.Description, tapi.State, tapi.Extra, tapi.Id).Error
+}
