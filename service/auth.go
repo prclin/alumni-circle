@@ -13,6 +13,25 @@ import (
 	"net/http"
 )
 
+func DeleteAPI(id uint32) error {
+	tx := Datasource.Begin()
+	defer tx.Commit()
+	apiDao := dao.NewAPIDao(tx)
+	//解除绑定
+	err := apiDao.DeleteBindingByAPIId(id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	//删除api
+	err = apiDao.DeleteById(id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	return nil
+}
+
 func UpdateAPI(tapi model.TAPI) (model.TAPI, error) {
 	tx := Datasource.Begin()
 	defer tx.Commit()

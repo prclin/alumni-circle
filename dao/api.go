@@ -36,3 +36,13 @@ func (ad *APIDao) UpdateBy(tapi model.TAPI) error {
 	sql := "update api set name=?,method=?,path=?,description=?,state=?,extra=? where id=?"
 	return ad.Tx.Exec(sql, tapi.Name, tapi.Method, tapi.Path, tapi.Description, tapi.State, tapi.Extra, tapi.Id).Error
 }
+
+func (ad *APIDao) DeleteBindingByAPIId(apiId uint32) error {
+	sql := "delete from api_binding where api_id=?"
+	return ad.Tx.Exec(sql, apiId).Error
+}
+
+func (ad *APIDao) DeleteById(id uint32) error {
+	sql := "delete from api where id=?"
+	return ad.Tx.Exec(sql, id).Error
+}
