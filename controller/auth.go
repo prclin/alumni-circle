@@ -16,6 +16,27 @@ func init() {
 	auth.PUT("/sign_in", EmailSignIn)  //邮箱登录
 	auth.POST("/api", PostAPI)
 	auth.PUT("/api/:id", PutAPI)
+	auth.DELETE("/api/:id", DeleteAPI)
+}
+
+// DeleteAPI 删除接口
+func DeleteAPI(c *gin.Context) {
+	//获取id
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//删除接口
+	err = service.DeleteAPI(uint32(id))
+	if err != nil {
+		Logger.Debug(err)
+		model.Server(c)
+		return
+	}
+
+	model.Write(c, model.Response[any]{Code: 200, Message: "删除成功"})
 }
 
 // PutAPI 修改接口
