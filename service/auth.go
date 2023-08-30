@@ -13,6 +13,11 @@ import (
 	"net/http"
 )
 
+func GetRoleList(pagination model.Pagination) ([]model.TRole, error) {
+	roleDao := dao.NewRoleDao(Datasource)
+	return roleDao.SelectPageBy((pagination.Page-1)*pagination.Size, pagination.Size)
+}
+
 func DeleteRole(id uint32) error {
 	tx := Datasource.Begin()
 	defer tx.Commit()

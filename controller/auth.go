@@ -21,6 +21,27 @@ func init() {
 	auth.POST("/role", PostRole)
 	auth.PUT("/role/:id", PutRole)
 	auth.DELETE("/role/:id", DeleteRole)
+	auth.GET("/role/list", GetRoleList)
+}
+
+// GetRoleList 获取角色列表
+func GetRoleList(c *gin.Context) {
+	//获取参数
+	var query model.Pagination
+	err := c.ShouldBindQuery(&query)
+	if err != nil {
+		Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//获取角色列表
+	roles, err := service.GetRoleList(query)
+	if err != nil {
+		Logger.Debug(err)
+		model.Server(c)
+		return
+	}
+	model.Ok(c, roles)
 }
 
 // DeleteRole 删除角色

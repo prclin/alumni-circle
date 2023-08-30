@@ -55,3 +55,13 @@ func (rd *RoleDao) DeleteById(id uint32) error {
 	sql := "delete from role where id=?"
 	return rd.Tx.Exec(sql, id).Error
 }
+
+func (rd *RoleDao) SelectPageBy(offset, size int) ([]TRole, error) {
+	var roles []TRole
+	sql := "select id, name, identifier, description, state, create_time, update_time from role limit ?,?"
+	err := rd.Tx.Raw(sql, offset, size).Scan(&roles).Error
+	if roles == nil {
+		roles = make([]TRole, 0, 0)
+	}
+	return roles, err
+}
