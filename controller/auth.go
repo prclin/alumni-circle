@@ -13,6 +13,41 @@ func init() {
 	auth := core.ContextRouter.Group("/auth")
 	auth.POST("/sign_up", EmailSignUp) //邮箱注册
 	auth.PUT("/sign_in", EmailSignIn)  //邮箱登录
+	auth.POST("/api", PostAPI)
+}
+
+// PostAPI 创建接口
+func PostAPI(c *gin.Context) {
+	//获取参数
+	var body struct {
+		Name        string  `json:"name" binding:"required"`
+		Method      string  `json:"method" binding:"required"`
+		Path        string  `json:"path" binding:"required"`
+		Description string  `json:"description"  binding:"omitempty"`
+		State       *uint8  `json:"state" binding:"required"`
+		Extra       *string `json:"extra" binding:"omitempty"`
+	}
+	err := c.ShouldBindJSON(&body)
+	if err != nil {
+		Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//创建
+	api, err := service.CreateAPI(model.TAPI{
+		Name:        body.Name,
+		Method:      body.Method,
+		Path:        body.Path,
+		Description: body.Description,
+		State:       *body.State,
+		Extra:       body.Extra,
+	})
+	if err != nil {
+		Logger.Debug(err)
+		model.Server(c)
+		return
+	}
+	model.Ok(c, api)
 }
 
 /*

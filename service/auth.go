@@ -13,6 +13,25 @@ import (
 	"net/http"
 )
 
+func CreateAPI(tapi model.TAPI) (model.TAPI, error) {
+	tx := Datasource.Begin()
+	defer tx.Commit()
+	apiDao := dao.NewAPIDao(tx)
+	//插入
+	id, err := apiDao.InsertBy(tapi)
+	if err != nil {
+		tx.Rollback()
+		return model.TAPI{}, err
+	}
+	//获取
+	api, err := apiDao.SelectById(id)
+	if err != nil {
+		tx.Rollback()
+		return model.TAPI{}, err
+	}
+	return api, nil
+}
+
 func EmailSignUp(account model.TAccount, captcha string) model.Response[any] {
 	//获取验证码
 	resCap, err := dao.GetString(fmt.Sprintf("captcha:%v", account.Email))
