@@ -3,6 +3,7 @@ package dao
 import (
 	. "github.com/prclin/alumni-circle/model"
 	"gorm.io/gorm"
+	"strings"
 )
 
 type RoleDao struct {
@@ -74,4 +75,18 @@ func (rd *RoleDao) SelectCountByIds(ids []uint32) (int, error) {
 	sql := "select count(id) from role where id in ?"
 	err := rd.Tx.Raw(sql, ids).First(&count).Error
 	return count, err
+}
+
+func (rd *RoleDao) BatchInsertBindingBy(bindings []TRoleBinding) error {
+	if len(bindings) == 0 {
+		return nil
+	}
+	sql := "insert into role_binding(account_id, role_id) values "
+	params := make([]interface{}, 0, len(bindings)*2)
+	for _, binding := range bindings {
+		sql += "(?,?),"
+		params = append(params, binding.AccountId, binding.RoleId)
+	}
+	sql = strings.TrimSuffix(sql, ",")
+	return rd.Tx.Exec(sql, params...).Error
 }

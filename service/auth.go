@@ -13,6 +13,40 @@ import (
 	"net/http"
 )
 
+func AllocateRole(accountIds []uint64, roleIds []uint32) error {
+	//事务
+	tx := Datasource.Begin()
+	defer tx.Commit()
+	//account ids 是否正确
+	accountDao := dao.NewAccountDao(tx)
+	accountCount, err := accountDao.SelectCountByIds(accountIds)
+	if err != nil || accountCount != len(accountIds) {
+		tx.Rollback()
+		return util.Ternary(err != nil, err, errors.New("部分账户不存在"))
+	}
+	//role ids是否正确
+	roleDao := dao.NewRoleDao(tx)
+	roleCount, err := roleDao.SelectCountByIds(roleIds)
+	if err != nil || roleCount != len(roleIds) {
+		tx.Rollback()
+		return util.Ternary(err != nil, err, errors.New("部分角色不存在"))
+	}
+	//映射binding
+	bindings := make([]model.TRoleBinding, 0, len(accountIds)*len(roleIds))
+	for _, accountId := range accountIds {
+		for _, roleId := range roleIds {
+			bindings = append(bindings, model.TRoleBinding{AccountId: accountId, RoleId: roleId})
+		}
+	}
+	//分配
+	err = roleDao.BatchInsertBindingBy(bindings)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	return nil
+}
+
 func RevokeAPIAllocation(roleIds, apiIds []uint32) error {
 	//映射binding
 	bindings := make([]model.TAPIBinding, 0, len(roleIds)*len(apiIds))
@@ -28,8 +62,9 @@ func RevokeAPIAllocation(roleIds, apiIds []uint32) error {
 	err := apiDao.DeleteBindingBy(bindings)
 	if err != nil {
 		tx.Rollback()
+		return err
 	}
-	return err
+	return nil
 }
 
 func AllocateAPI(roleIds, apiIds []uint32) error {
