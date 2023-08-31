@@ -13,6 +13,25 @@ import (
 	"net/http"
 )
 
+func RevokeAPIAllocation(roleIds, apiIds []uint32) error {
+	//映射binding
+	bindings := make([]model.TAPIBinding, 0, len(roleIds)*len(apiIds))
+	for _, roleId := range roleIds {
+		for _, apiId := range apiIds {
+			bindings = append(bindings, model.TAPIBinding{RoleId: roleId, APIId: apiId})
+		}
+	}
+	//事务
+	tx := Datasource.Begin()
+	defer tx.Commit()
+	apiDao := dao.NewAPIDao(tx)
+	err := apiDao.DeleteBindingBy(bindings)
+	if err != nil {
+		tx.Rollback()
+	}
+	return err
+}
+
 func AllocateAPI(roleIds, apiIds []uint32) error {
 	//事务
 	tx := Datasource.Begin()

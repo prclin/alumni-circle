@@ -23,6 +23,30 @@ func init() {
 	auth.DELETE("/role/:id", DeleteRole)
 	auth.GET("/role/list", GetRoleList)
 	auth.POST("/api/allocation", PostAPIAllocation)
+	auth.DELETE("/api/allocation", DeleteAPIAllocation)
+}
+
+// DeleteAPIAllocation 接口解配
+func DeleteAPIAllocation(c *gin.Context) {
+	//获取参数
+	var body struct {
+		RoleIds []uint32 `json:"role_ids" binding:"required,min=1"`
+		APIIds  []uint32 `json:"api_ids"  binding:"required,min=1"`
+	}
+	err := c.ShouldBindJSON(&body)
+	if err != nil {
+		Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//分配
+	err = service.RevokeAPIAllocation(body.RoleIds, body.APIIds)
+	if err != nil {
+		Logger.Debug(err)
+		model.Server(c)
+		return
+	}
+	model.Write(c, model.Response[any]{Code: http.StatusOK, Message: "解配成功"})
 }
 
 // PostAPIAllocation 接口分配
