@@ -14,3 +14,9 @@ type TAPI struct {
 	CreateTime  time.Time `json:"create_time"`
 	UpdateTime  time.Time `json:"update_time"`
 }
+
+// TAPIBinding api_binding表
+type TAPIBinding struct {
+	RoleId uint32 `json:"role_id"`
+	APIId  uint32 `json:"api_id"`
+}

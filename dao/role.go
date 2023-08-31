@@ -65,3 +65,13 @@ func (rd *RoleDao) SelectPageBy(offset, size int) ([]TRole, error) {
 	}
 	return roles, err
 }
+
+func (rd *RoleDao) SelectCountByIds(ids []uint32) (int, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	var count int
+	sql := "select count(id) from role where id in ?"
+	err := rd.Tx.Raw(sql, ids).First(&count).Error
+	return count, err
+}

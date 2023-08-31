@@ -22,6 +22,30 @@ func init() {
 	auth.PUT("/role/:id", PutRole)
 	auth.DELETE("/role/:id", DeleteRole)
 	auth.GET("/role/list", GetRoleList)
+	auth.POST("/api/allocation", PostAPIAllocation)
+}
+
+// PostAPIAllocation 接口分配
+func PostAPIAllocation(c *gin.Context) {
+	//获取参数
+	var body struct {
+		RoleIds []uint32 `json:"role_ids" binding:"required,min=1"`
+		APIIds  []uint32 `json:"api_ids"  binding:"required,min=1"`
+	}
+	err := c.ShouldBindJSON(&body)
+	if err != nil {
+		Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//分配
+	err = service.AllocateAPI(body.RoleIds, body.APIIds)
+	if err != nil {
+		Logger.Debug(err)
+		model.Server(c)
+		return
+	}
+	model.Write(c, model.Response[any]{Code: http.StatusOK, Message: "分配成功"})
 }
 
 // GetRoleList 获取角色列表

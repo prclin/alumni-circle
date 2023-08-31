@@ -3,6 +3,7 @@ package dao
 import (
 	"github.com/prclin/alumni-circle/model"
 	"gorm.io/gorm"
+	"strings"
 )
 
 type APIDao struct {
@@ -55,4 +56,28 @@ func (ad *APIDao) SelectPageBy(offset, size int) ([]model.TAPI, error) {
 		apis = make([]model.TAPI, 0, 0)
 	}
 	return apis, err
+}
+
+func (ad *APIDao) BatchInsertBindingBy(bindings []model.TAPIBinding) error {
+	if len(bindings) == 0 {
+		return nil
+	}
+	sql := "insert into api_binding(role_id, api_id) values" //goland报错，忽略
+	params := make([]interface{}, 0, len(bindings)*2)
+	for _, binding := range bindings {
+		sql += "(?,?),"
+		params = append(params, binding.RoleId, binding.APIId)
+	}
+	sql = strings.TrimSuffix(sql, ",")
+	return ad.Tx.Exec(sql, params...).Error
+}
+
+func (ad *APIDao) SelectCountByIds(ids []uint32) (int, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	var count int
+	sql := "select count(id) from api where id in ?"
+	err := ad.Tx.Raw(sql, ids).First(&count).Error
+	return count, err
 }
