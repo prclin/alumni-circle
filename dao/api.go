@@ -89,7 +89,7 @@ func (ad *APIDao) DeleteBindingBy(bindings []model.TAPIBinding) error {
 	sql := "delete from api_binding where " //goland报错，忽略
 	params := make([]interface{}, 0, len(bindings)*2)
 	for _, binding := range bindings {
-		sql += "(role_id=? and api_id=?) or"
+		sql += " (role_id=? and api_id=?) or"
 		params = append(params, binding.RoleId, binding.APIId)
 	}
 	sql = strings.TrimSuffix(sql, "or")

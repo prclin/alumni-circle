@@ -90,3 +90,17 @@ func (rd *RoleDao) BatchInsertBindingBy(bindings []TRoleBinding) error {
 	sql = strings.TrimSuffix(sql, ",")
 	return rd.Tx.Exec(sql, params...).Error
 }
+
+func (rd *RoleDao) DeleteBindingBy(bindings []TRoleBinding) error {
+	if len(bindings) == 0 {
+		return nil
+	}
+	sql := "delete from role_binding where" //goland报错，忽略
+	params := make([]interface{}, 0, len(bindings)*2)
+	for _, binding := range bindings {
+		sql += " (account_id=? and role_id=?) or"
+		params = append(params, binding.AccountId, binding.RoleId)
+	}
+	sql = strings.TrimSuffix(sql, "or")
+	return rd.Tx.Exec(sql, params...).Error
+}
