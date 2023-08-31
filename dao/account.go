@@ -34,6 +34,13 @@ func (ad *AccountDao) SelectByEmail(email string) (model.TAccount, error) {
 	return account, err
 }
 
+func (ad *AccountDao) SelectCountByIds(ids []uint64) (int, error) {
+	var count int
+	sql := "select count(id) from account where id in ?"
+	err := ad.Tx.Raw(sql, ids).First(&count).Error
+	return count, err
+}
+
 type AccountInfoDao struct {
 	Tx *gorm.DB
 }
