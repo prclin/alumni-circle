@@ -82,7 +82,7 @@ func (sd *ShotDao) BatchInsertBy(bindings []model.TShotBinding) error {
 		return nil
 	}
 	sql := "insert into shot_binding(break_id, image_id, `order`) values" //此处为goland报错
-	params := make([]interface{}, 0, len(bindings))
+	params := make([]interface{}, 0, len(bindings)*3)
 	for _, binding := range bindings {
 		sql += "(?,?,?),"
 		params = append(params, binding.BreakId, binding.ImageId, binding.Order)

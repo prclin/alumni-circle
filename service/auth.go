@@ -13,6 +13,40 @@ import (
 	"net/http"
 )
 
+func AllocateAPI(roleIds, apiIds []uint32) error {
+	//事务
+	tx := Datasource.Begin()
+	defer tx.Commit()
+	//role ids 是否正确
+	roleDao := dao.NewRoleDao(tx)
+	roleCount, err := roleDao.SelectCountByIds(roleIds)
+	if err != nil || roleCount != len(roleIds) {
+		tx.Rollback()
+		return util.Ternary(err != nil, err, errors.New("部分角色不存在"))
+	}
+	//api ids是否正确
+	apiDao := dao.NewAPIDao(tx)
+	apiCount, err := apiDao.SelectCountByIds(apiIds)
+	if err != nil || apiCount != len(apiIds) {
+		tx.Rollback()
+		return util.Ternary(err != nil, err, errors.New("部分接口不存在"))
+	}
+	//映射binding
+	bindings := make([]model.TAPIBinding, 0, len(roleIds)*len(apiIds))
+	for _, roleId := range roleIds {
+		for _, apiId := range apiIds {
+			bindings = append(bindings, model.TAPIBinding{RoleId: roleId, APIId: apiId})
+		}
+	}
+	//批量插入
+	err = apiDao.BatchInsertBindingBy(bindings)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	return nil
+}
+
 func GetRoleList(pagination model.Pagination) ([]model.TRole, error) {
 	roleDao := dao.NewRoleDao(Datasource)
 	return roleDao.SelectPageBy((pagination.Page-1)*pagination.Size, pagination.Size)
