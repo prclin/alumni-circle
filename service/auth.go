@@ -13,6 +13,27 @@ import (
 	"net/http"
 )
 
+func RevokeRoleAllocation(accountIds []uint64, roleIds []uint32) error {
+	//映射binding
+	bindings := make([]model.TRoleBinding, 0, len(accountIds)*len(roleIds))
+	for _, accountId := range accountIds {
+		for _, roleId := range roleIds {
+			bindings = append(bindings, model.TRoleBinding{AccountId: accountId, RoleId: roleId})
+		}
+	}
+	//事务
+	tx := Datasource.Begin()
+	defer tx.Commit()
+	roleDao := dao.NewRoleDao(tx)
+	//删除
+	err := roleDao.DeleteBindingBy(bindings)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	return nil
+}
+
 func AllocateRole(accountIds []uint64, roleIds []uint32) error {
 	//事务
 	tx := Datasource.Begin()
