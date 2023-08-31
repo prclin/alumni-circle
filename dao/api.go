@@ -81,3 +81,17 @@ func (ad *APIDao) SelectCountByIds(ids []uint32) (int, error) {
 	err := ad.Tx.Raw(sql, ids).First(&count).Error
 	return count, err
 }
+
+func (ad *APIDao) DeleteBindingBy(bindings []model.TAPIBinding) error {
+	if len(bindings) == 0 {
+		return nil
+	}
+	sql := "delete from api_binding where " //goland报错，忽略
+	params := make([]interface{}, 0, len(bindings)*2)
+	for _, binding := range bindings {
+		sql += "(role_id=? and api_id=?) or"
+		params = append(params, binding.RoleId, binding.APIId)
+	}
+	sql = strings.TrimSuffix(sql, "or")
+	return ad.Tx.Exec(sql, params...).Error
+}
