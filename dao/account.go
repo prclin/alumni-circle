@@ -41,6 +41,13 @@ func (ad *AccountDao) SelectCountByIds(ids []uint64) (int, error) {
 	return count, err
 }
 
+func (ad *AccountDao) Exist(id uint64) (bool, error) {
+	var exist bool
+	sql := "select count(id) from account where id = ?"
+	err := ad.Tx.Raw(sql, id).First(&exist).Error
+	return exist, err
+}
+
 type AccountInfoDao struct {
 	Tx *gorm.DB
 }
@@ -79,4 +86,9 @@ func (fd *FollowDao) IsFollowed(follower, followee uint64) (bool, error) {
 	sql := "select count(*) from follow where follower_id=? and followee_id=?"
 	err := fd.Tx.Raw(sql, follower, followee).Scan(&followed).Error
 	return followed, err
+}
+
+func (fd *FollowDao) InsertBy(follow model.TFollow) error {
+	sql := "insert into follow(follower_id, followee_id, extra) value (?,?,?)"
+	return fd.Tx.Exec(sql, follow.FollowerId, follow.FolloweeId, follow.Extra).Error
 }

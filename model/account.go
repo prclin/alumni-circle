@@ -36,3 +36,11 @@ type TAccountInfo struct {
 	CreateTime    time.Time `json:"create_time"`
 	UpdateTime    time.Time `json:"update_time"`
 }
+
+// TFollow 关注表
+type TFollow struct {
+	FollowerId uint64
+	FolloweeId uint64
+	Extra      *string
+	CreateTime time.Time
+}
