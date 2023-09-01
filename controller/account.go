@@ -23,6 +23,48 @@ func init() {
 	account.PUT("/photo", PutAccountPhoto)
 	account.PUT("/tag", PutAccountTag)
 	account.GET("/tag/:id", GetAccountTag)
+	account.POST("/follow", PostFollow)
+}
+
+// PostFollow 关注
+func PostFollow(c *gin.Context) {
+	//获取token
+	token, err := c.Cookie("token")
+	if err != nil {
+		Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//解析token
+	claims, err := util.ParseToken(token)
+	if err != nil {
+		Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//获取参数
+	var body struct {
+		FolloweeId uint64  `json:"followee_id" binding:"required"`
+		Extra      *string `json:"extra" binding:"omitempty,json"`
+	}
+	err = c.ShouldBindJSON(&body)
+	if err != nil {
+		Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//关注
+	err = service.FollowAccount(model.TFollow{
+		FollowerId: claims.Id,
+		FolloweeId: body.FolloweeId,
+		Extra:      body.Extra,
+	})
+	if err != nil {
+		Logger.Debug(err)
+		model.Server(c)
+		return
+	}
+	model.Write(c, model.Response[any]{Code: http.StatusOK, Message: "关注成功"})
 }
 
 // GetAccountTag 获取账户兴趣标签

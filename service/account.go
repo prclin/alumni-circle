@@ -1,10 +1,33 @@
 package service
 
 import (
+	"errors"
 	"github.com/prclin/alumni-circle/dao"
 	. "github.com/prclin/alumni-circle/global"
 	"github.com/prclin/alumni-circle/model"
+	"github.com/prclin/alumni-circle/util"
 )
+
+func FollowAccount(follow model.TFollow) error {
+	//事务
+	tx := Datasource.Begin()
+	defer tx.Commit()
+	accountDao := dao.NewAccountDao(tx)
+	//验证被关注账户
+	exist, err := accountDao.Exist(follow.FolloweeId)
+	if err != nil || !exist {
+		tx.Rollback()
+		return util.Ternary(err != nil, err, errors.New("被关注账户不存在"))
+	}
+	//关注
+	followDao := dao.NewFollowDao(tx)
+	err = followDao.InsertBy(follow)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	return nil
+}
 
 func GetAccountTag(id uint64) ([]model.TTag, error) {
 	td := dao.NewTagDao(Datasource)
