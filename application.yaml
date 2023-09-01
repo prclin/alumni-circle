@@ -3,7 +3,7 @@ server:
   contextPath: /alumni
 datasource:
   mysql:
-    dsn: root:root@tcp(127.0.0.1:3306)/alumni?charset=utf8mb4&parseTime=True&loc=Local
+    dsn: root:xyqtech@tcp(www.xyqtech.com:3306)/alumni?charset=utf8mb4&parseTime=True&loc=Local
 zap:
   level: debug
 email:
@@ -13,7 +13,7 @@ email:
   password: gryokzzkzchicead
 redis:
   options:
-    addr: "localhost:6379"
+    addr: "www.xyqtech.com:6379"
     db: 0
 jwt:
   rsa:
@@ -36,3 +36,8 @@ oss:
   endpoint: https://oss-cn-chengdu.aliyuncs.com
   accessKeyId: LTAI5tDU1MgTC49kLbyA9ZCL
   accessKeySecret: WYLTdfKU39btlK7eqPiVgP7to3Nd9C
+websocket:
+  upgrader:
+    readBufferSize: 1024
+    writeBufferSize: 1024
+    enableCompression: true
