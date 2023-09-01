@@ -92,3 +92,8 @@ func (fd *FollowDao) InsertBy(follow model.TFollow) error {
 	sql := "insert into follow(follower_id, followee_id, extra) value (?,?,?)"
 	return fd.Tx.Exec(sql, follow.FollowerId, follow.FolloweeId, follow.Extra).Error
 }
+
+func (fd *FollowDao) DeleteBy(follow model.TFollow) error {
+	sql := "delete from follow where follower_id=? and followee_id=?"
+	return fd.Tx.Exec(sql, follow.FollowerId, follow.FolloweeId).Error
+}
