@@ -24,6 +24,46 @@ func init() {
 	account.PUT("/tag", PutAccountTag)
 	account.GET("/tag/:id", GetAccountTag)
 	account.POST("/follow", PostFollow)
+	account.DELETE("/follow", DeleteFollow)
+}
+
+// DeleteFollow 取关
+func DeleteFollow(c *gin.Context) {
+	//获取token
+	token, err := c.Cookie("token")
+	if err != nil {
+		Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//解析token
+	claims, err := util.ParseToken(token)
+	if err != nil {
+		Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//获取参数
+	var body struct {
+		FolloweeId uint64 `json:"followee_id" binding:"required"`
+	}
+	err = c.ShouldBindJSON(&body)
+	if err != nil {
+		Logger.Debug(err)
+		model.Client(c)
+		return
+	}
+	//取关
+	err = service.RevokeFollow(model.TFollow{
+		FollowerId: claims.Id,
+		FolloweeId: body.FolloweeId,
+	})
+	if err != nil {
+		Logger.Debug(err)
+		model.Server(c)
+		return
+	}
+	model.Write(c, model.Response[any]{Code: http.StatusOK, Message: "取关成功"})
 }
 
 // PostFollow 关注

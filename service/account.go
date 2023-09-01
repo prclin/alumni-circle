@@ -8,6 +8,20 @@ import (
 	"github.com/prclin/alumni-circle/util"
 )
 
+func RevokeFollow(follow model.TFollow) error {
+	//事务
+	tx := Datasource.Begin()
+	defer tx.Commit()
+	//取关
+	followDao := dao.NewFollowDao(tx)
+	err := followDao.DeleteBy(follow)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	return nil
+}
+
 func FollowAccount(follow model.TFollow) error {
 	//事务
 	tx := Datasource.Begin()
