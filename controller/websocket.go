@@ -5,8 +5,10 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/prclin/alumni-circle/core"
 	"github.com/prclin/alumni-circle/global"
+	"github.com/prclin/alumni-circle/messaging"
 	"github.com/prclin/alumni-circle/model"
 	websocket2 "github.com/prclin/alumni-circle/websocket"
+	"net/http"
 )
 
 func init() {
@@ -18,6 +20,9 @@ var (
 	upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
 	}
 	broker = websocket2.DefaultBroker()
 )
@@ -30,11 +35,13 @@ func GetWebsocketConnection(c *gin.Context) {
 		model.Server(c)
 		return
 	}
-	client := websocket2.NewClient(0, connection)
-	broker.AddClient(client)
-	for {
-		var msg websocket2.Message
-		_ = connection.ReadJSON(&msg)
-		broker.Channel <- msg
+	err = messaging.OverWebsocket(connection)
+	if err != nil {
+		global.Logger.Debug(err)
 	}
+	//client := websocket2.NewClient(0, connection)
+	//broker.AddClient(client)
+	//var msg websocket2.Message
+	//_ = connection.ReadJSON(&msg)
+	//broker.Channel <- msg
 }
