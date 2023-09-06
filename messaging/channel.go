@@ -1,10 +1,27 @@
 package messaging
 
 type InboundChannel struct {
-	//消息帧
-	fChan chan *Frame
+	frames chan *Frame
+}
+
+func (ic *InboundChannel) Process() {
+	for {
+		frame := <-ic.frames
+		switch frame.Command {
+		case SEND:
+		}
+	}
 }
 
 type OutboundChannel struct {
-	//消息帧
+	frames chan *Frame
+}
+
+func (oc *OutboundChannel) Process() {
+	for {
+		frame := <-oc.frames
+		switch frame.Command {
+		case SEND:
+		}
+	}
 }

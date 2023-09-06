@@ -8,54 +8,87 @@ import (
 	"strings"
 )
 
-type Frame struct {
-	Command string
-	Headers map[string]string
-	Payload []byte
-}
-
 // commands
 const (
-	Message     = "MESSAGE"
-	Receipt     = "RECEIPT"
-	Error       = "ERROR"
-	Connect     = "CONNECT"
-	Connected   = "CONNECTED"
-	Send        = "SEND"
-	Subscribe   = "SUBSCRIBE"
-	Unsubscribe = "UNSUBSCRIBE"
-	Ack         = "ACK"
-	Nack        = "NACK"
-	Begin       = "BEGIN"
-	Commit      = "COMMIT"
-	Abort       = "ABORT"
-	Disconnect  = "DISCONNECT"
+	MESSAGE Command = iota
+	RECEIPT
+	ERROR
+
+	CONNECT
+	STOMP
+	CONNECTED
+	SEND
+	SUBSCRIBE
+	UNSUBSCRIBE
+	ACK
+	NACK
+	BEGIN
+	COMMIT
+	ABORT
+	DISCONNECT
 )
 
 var (
-	ClientCommands = map[string]struct{}{
-		Connect:     {},
-		Send:        {},
-		Subscribe:   {},
-		Unsubscribe: {},
-		Ack:         {},
-		Nack:        {},
-		Begin:       {},
-		Commit:      {},
-		Abort:       {},
-		Disconnect:  {},
-	}
-	ServerCommands = map[string]struct{}{
-		Connected: {},
-		Message:   {},
-		Receipt:   {},
-		Error:     {},
-	}
+	//所有支持的command
+	commands       = []string{"MESSAGE", "RECEIPT", "ERROR", "CONNECT", "STOMP", "CONNECTED", "SEND", "SUBSCRIBE", "UNSUBSCRIBE", "ACK", "NACK", "BEGIN", "COMMIT", "ABORT", "DISCONNECT"}
+	serverCommands = commands[:2]
+	clientCommands = commands[3:]
 )
 
+// 确保Command实现了Stringer
+var _ fmt.Stringer = Command(0)
+
+type Command int8
+
+// CommandOf 通过字符串值，获取command枚举
+func CommandOf(command string) (Command, error) {
+	for i, v := range commands {
+		if v == command {
+			return Command(i), nil
+		}
+	}
+	return -1, errors.New("unsupported command")
+}
+
+func (c Command) String() string {
+	return commands[c]
+}
+
+// Frame stomp协议帧
+//
+// Only the SEND, MESSAGE, and ERROR frames can have a body. All other frames MUST NOT have a body.
+type Frame struct {
+	Command Command
+	Headers map[string]string
+	Body    []byte
+}
+
+func NewFrame(command Command, headers map[string]string, payload []byte) *Frame {
+	return &Frame{Command: command, Headers: headers, Body: payload}
+}
+
+func (f Frame) String() string {
+	s := ""
+	//command
+	s += f.Command.String() + "\n"
+	//headers
+	for key, value := range f.Headers {
+		s += key + ":" + value + "\n"
+	}
+	//blank line
+	s += "\n"
+	//body
+	s += string(f.Body) + string([]byte{0x00})
+	return s
+}
+
 func IsClientCommand(command string) bool {
-	_, ok := ClientCommands[command]
-	return ok
+	for _, clientCommand := range clientCommands {
+		if command == clientCommand {
+			return true
+		}
+	}
+	return false
 }
 
 // Resolve 解析frame
@@ -75,7 +108,10 @@ func Resolve(buf []byte) (*Frame, error) {
 		fmt.Println(cs)
 		return nil, errors.New("not client command")
 	}
-	f.Command = cs
+	f.Command, err = CommandOf(cs)
+	if err != nil {
+		return nil, err
+	}
 
 	f.Headers = make(map[string]string, 2)
 	//读取消息头
@@ -106,6 +142,6 @@ func Resolve(buf []byte) (*Frame, error) {
 		return nil, err
 	}
 
-	f.Payload = payload[:len(payload)-1]
+	f.Body = payload[:len(payload)-1]
 	return f, nil
 }

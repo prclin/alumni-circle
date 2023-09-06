@@ -35,7 +35,8 @@ func GetWebsocketConnection(c *gin.Context) {
 		model.Server(c)
 		return
 	}
-	err = messaging.OverWebsocket(connection)
+	upgrader2 := messaging.Upgrader{}
+	err = upgrader2.Upgrade(connection)
 	if err != nil {
 		global.Logger.Debug(err)
 	}
