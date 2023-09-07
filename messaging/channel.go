@@ -1,5 +1,7 @@
 package messaging
 
+import "fmt"
+
 type InboundChannel struct {
 	frames chan *Frame
 }
@@ -7,9 +9,7 @@ type InboundChannel struct {
 func (ic *InboundChannel) Process() {
 	for {
 		frame := <-ic.frames
-		switch frame.Command {
-		case SEND:
-		}
+		fmt.Println(frame)
 	}
 }
 
@@ -20,8 +20,6 @@ type OutboundChannel struct {
 func (oc *OutboundChannel) Process() {
 	for {
 		frame := <-oc.frames
-		switch frame.Command {
-		case SEND:
-		}
+		fmt.Println(frame)
 	}
 }

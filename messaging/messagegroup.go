@@ -2,7 +2,7 @@ package messaging
 
 type MessageGroup struct {
 	prefix string
-	broker *Broker
+	broker *StompBroker
 }
 
 type Handler func(ctx *Context)

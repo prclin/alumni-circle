@@ -9,7 +9,7 @@ import (
 type Upgrader struct {
 }
 
-func (r *Upgrader) Upgrade(conn *websocket.Conn) error {
+func (u *Upgrader) Upgrade(conn *websocket.Conn) (*Client, error) {
 	client := &Client{
 		Conn: conn,
 	}
@@ -17,13 +17,13 @@ func (r *Upgrader) Upgrade(conn *websocket.Conn) error {
 	//读取CONNECT/STOMP帧
 	frame, err := client.ReadFrame()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	//不是CONNECT帧
 	if frame.Command != CONNECT && frame.Command != STOMP {
 		ef := NewFrame(ERROR, map[string]string{"message": "client sent other frame before CONNECT"}, []byte(frame.String()))
 		conn.WriteMessage(websocket.TextMessage, []byte(ef.String()))
-		return errors.New("not allowed frame before CONNECT")
+		return nil, errors.New("not allowed frame before CONNECT")
 	}
 
 	v, ok := frame.Headers["accept-version"]
@@ -31,7 +31,7 @@ func (r *Upgrader) Upgrade(conn *websocket.Conn) error {
 	if !ok {
 		ef := NewFrame(ERROR, map[string]string{"message": "CONNECT frame must has an accept-version header"}, []byte(frame.String()))
 		conn.WriteMessage(websocket.TextMessage, []byte(ef.String()))
-		return errors.New("CONNECT frame must has an accept-version header")
+		return nil, errors.New("CONNECT frame must has an accept-version header")
 	}
 
 	//协议版本协商，目前只支持1.1
@@ -46,13 +46,12 @@ func (r *Upgrader) Upgrade(conn *websocket.Conn) error {
 	if !support {
 		ef := NewFrame(ERROR, map[string]string{"message": "unsupported protocol version"}, []byte(frame.String()))
 		conn.WriteMessage(websocket.TextMessage, []byte(ef.String()))
-		return errors.New("unsupported protocol version")
+		return nil, errors.New("unsupported protocol version")
 	}
 
 	//连接成功
 	rf := NewFrame(CONNECTED, map[string]string{"version": "1.1", "heart-beat": "0,0"}, nil)
 	conn.WriteMessage(websocket.TextMessage, []byte(rf.String()))
 
-	go client.Listen()
-	return nil
+	return client, nil
 }

@@ -2,23 +2,11 @@ package messaging
 
 import (
 	"errors"
-	"fmt"
 	"github.com/gorilla/websocket"
 )
 
 type Client struct {
 	Conn *websocket.Conn
-}
-
-func (c *Client) Listen() {
-	for {
-		frame, err := c.ReadFrame()
-		if err != nil {
-			c.Conn.Close()
-			break
-		}
-		fmt.Printf("%v", frame)
-	}
 }
 
 func (c *Client) ReadFrame() (*Frame, error) {
@@ -34,4 +22,8 @@ func (c *Client) ReadFrame() (*Frame, error) {
 
 	//解析frame
 	return Resolve(message)
+}
+
+func (c *Client) WriteFrame(frame *Frame) error {
+	return c.Conn.WriteMessage(websocket.TextMessage, []byte(frame.String()))
 }

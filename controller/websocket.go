@@ -35,8 +35,10 @@ func GetWebsocketConnection(c *gin.Context) {
 		model.Server(c)
 		return
 	}
-	upgrader2 := messaging.Upgrader{}
-	err = upgrader2.Upgrade(connection)
+
+	stompBroker := messaging.NewStompBroker()
+	stompBroker.Run()
+	err = stompBroker.ServeOver(connection)
 	if err != nil {
 		global.Logger.Debug(err)
 	}
