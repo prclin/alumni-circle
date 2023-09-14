@@ -1,12 +1,12 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/prclin/alumni-circle/core"
 	"github.com/prclin/alumni-circle/global"
 	"github.com/prclin/alumni-circle/messaging"
-	"github.com/prclin/alumni-circle/model"
 	websocket2 "github.com/prclin/alumni-circle/websocket"
 	"net/http"
 )
@@ -29,16 +29,13 @@ var (
 
 // GetWebsocketConnection websocket连接
 func GetWebsocketConnection(c *gin.Context) {
-	connection, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-	if err != nil {
-		global.Logger.Debug(err)
-		model.Server(c)
-		return
-	}
-
 	stompBroker := messaging.NewStompBroker()
-	stompBroker.Run()
-	err = stompBroker.ServeOver(connection)
+	a := func(context *messaging.Context) {
+		fmt.Println(context.Frame.String())
+	}
+	stompBroker.Handle("/test", a)
+	stompBroker.Subscribe("/test", a)
+	err := stompBroker.ServeOverHttp(c.Writer, c.Request)
 	if err != nil {
 		global.Logger.Debug(err)
 	}

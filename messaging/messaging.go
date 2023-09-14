@@ -2,67 +2,120 @@ package messaging
 
 import (
 	"github.com/gorilla/websocket"
-	"sync/atomic"
-	"time"
+	"net/http"
+	"sync"
 )
 
+// StompBroker 消息代理
+//
+// 数据流向
+//
+/*
+InboundChannel	---->  MethodMessageHandler
+
+		|       ---->  BrokerMessageHandler	<----       |
+
+OutboundChannel	<----         |
+*/
 type StompBroker struct {
 	MessageGroup
 	Upgrader
-	inbound  InboundChannel
-	outbound OutboundChannel
-	//最大连接数
-	MaxConnections *atomic.Uint32
-	MaxWorkers     *atomic.Uint32
+	inbound       MessageChannel
+	outbound      MessageChannel
+	brokerHandler MessageHandler
+	methodHandler MessageHandler
+	//应用消息前缀
+	AppDestinationPrefix string
+	//代理消息前缀
+	BrokerDestinationPrefix string
+	//锁
+	lock sync.Mutex
+	//订阅
+	subscriptions []*Subscription
+	//send帧处理函数
+	sendMap map[string]MethodHandler
+	//subscribe帧处理函数
+	subscribeMap map[string]MethodHandler
 }
 
-// NewStompBroker 构造器
 func NewStompBroker() *StompBroker {
-	mc := &atomic.Uint32{}
-	mc.Store(8192)
-	return &StompBroker{
-		MaxConnections: mc,
-		inbound: InboundChannel{
-			frames: make(chan *Frame, 12),
+	outbound := &ClientOutBoundChannel{}
+	brokerHandler := &BrokerMessageHandler{outboundChannel: outbound}
+	methodHandler := &MethodMessageHandler{}
+	inbound := &ClientInboundChannel{}
+	inbound.AddValves(&SubscribeValve{methodHandler: methodHandler}, &SendValve{methodHandler: methodHandler, brokerHandler: brokerHandler})
+	broker := &StompBroker{
+		MessageGroup: MessageGroup{
+			prefix: "",
 		},
+		AppDestinationPrefix:    "/app",
+		BrokerDestinationPrefix: "/topic",
+		Upgrader: Upgrader{
+			wsUpgrader: websocket.Upgrader{
+				ReadBufferSize:  1024,
+				WriteBufferSize: 1024,
+				CheckOrigin: func(r *http.Request) bool {
+					return true
+				},
+			},
+		},
+		outbound:      outbound,
+		brokerHandler: brokerHandler,
+		methodHandler: methodHandler,
+		inbound:       inbound,
+		subscriptions: make([]*Subscription, 100),
+		sendMap:       make(map[string]MethodHandler),
+		subscribeMap:  make(map[string]MethodHandler),
 	}
+	broker.MessageGroup.broker = broker
+	return broker
 }
 
-// Run 启动消息代理
-func (sb *StompBroker) Run() error {
-	go sb.inbound.Process()
-	go sb.outbound.Process()
-	return nil
-}
-
-// ServeOver 与client建立连接，建立成功后会阻塞在这，知道发生错误或者连接中断
-func (sb *StompBroker) ServeOver(conn *websocket.Conn) error {
-	//减少连接数
-	for maxConns := sb.MaxConnections.Load(); maxConns > 0 && !sb.MaxConnections.CompareAndSwap(maxConns, maxConns-1); maxConns = sb.MaxConnections.Load() {
-		time.Sleep(time.Millisecond)
-	}
-	//增加连接数
-	defer func() {
-		for maxConns := sb.MaxConnections.Load(); !sb.MaxConnections.CompareAndSwap(maxConns, maxConns+1); maxConns = sb.MaxConnections.Load() {
-			time.Sleep(time.Millisecond)
-		}
-	}()
+// ServeOverHttp 与client建立连接，建立成功后会阻塞在这，直到发生错误或者连接中断
+func (sb *StompBroker) ServeOverHttp(w http.ResponseWriter, r *http.Request) error {
 	//升级为stomp协议
-	client, err := sb.Upgrade(conn)
+	conn, err := sb.Upgrade(w, r)
 	if err != nil {
 		return err
 	}
-	//读取消息
+	//监听消息
 	for {
-		frame, err1 := client.ReadFrame()
-		if err1 != nil {
-			//写回错误
-			client.WriteFrame(NewFrame(ERROR, map[string]string{"message": err1.Error()}, nil))
-			//关闭连接
-			client.Conn.Close()
-			return err1
+		frame, err := conn.ReadFrame()
+		if err != nil {
+			conn.Close()
+			return err
 		}
-		//传递到inbound channel
-		sb.inbound.frames <- frame
+		sb.inbound.Send(&Context{broker: sb, Frame: frame, Conn: conn, Params: make(map[string]string, 2)})
+	}
+}
+func (sb *StompBroker) addSubscription(subscription *Subscription) {
+	sb.lock.Lock()
+	defer sb.lock.Unlock()
+	sb.subscriptions = append(sb.subscriptions, subscription)
+}
+
+type Subscription struct {
+	Id          string
+	Destination string
+	Conn        *Conn
+}
+
+type MessageGroup struct {
+	prefix string
+	broker *StompBroker
+}
+
+func (mg *MessageGroup) Handle(destination string, handler MethodHandler) {
+	mg.broker.sendMap[mg.broker.AppDestinationPrefix+mg.prefix+destination] = handler
+}
+
+func (mg *MessageGroup) Subscribe(destination string, handler MethodHandler) {
+	mg.broker.subscribeMap[mg.broker.BrokerDestinationPrefix+mg.prefix+destination] = handler
+}
+
+func (mg *MessageGroup) Group(prefix string) *MessageGroup {
+	return &MessageGroup{
+		prefix: mg.prefix + prefix,
+		broker: mg.broker,
 	}
 }

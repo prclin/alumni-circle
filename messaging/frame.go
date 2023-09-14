@@ -1,14 +1,11 @@
 package messaging
 
 import (
-	"bufio"
-	"bytes"
 	"errors"
 	"fmt"
-	"strings"
 )
 
-// commands
+// command常量,不能打乱顺序
 const (
 	MESSAGE Command = iota
 	RECEIPT
@@ -33,11 +30,11 @@ var (
 	commands       = []string{"MESSAGE", "RECEIPT", "ERROR", "CONNECT", "STOMP", "CONNECTED", "SEND", "SUBSCRIBE", "UNSUBSCRIBE", "ACK", "NACK", "BEGIN", "COMMIT", "ABORT", "DISCONNECT"}
 	serverCommands = commands[:2]
 	clientCommands = commands[3:]
+	// 确保Command实现了Stringer
+	_ fmt.Stringer = Command(0)
 )
 
-// 确保Command实现了Stringer
-var _ fmt.Stringer = Command(0)
-
+// Command stomp帧的指令
 type Command int8
 
 // CommandOf 通过字符串值，获取command枚举
@@ -67,7 +64,7 @@ func NewFrame(command Command, headers map[string]string, payload []byte) *Frame
 	return &Frame{Command: command, Headers: headers, Body: payload}
 }
 
-func (f Frame) String() string {
+func (f *Frame) String() string {
 	s := ""
 	//command
 	s += f.Command.String() + "\n"
@@ -82,6 +79,10 @@ func (f Frame) String() string {
 	return s
 }
 
+func (f *Frame) Destination() string {
+	return f.Headers["destination"]
+}
+
 func IsClientCommand(command string) bool {
 	for _, clientCommand := range clientCommands {
 		if command == clientCommand {
@@ -89,59 +90,4 @@ func IsClientCommand(command string) bool {
 		}
 	}
 	return false
-}
-
-// Resolve 解析frame
-func Resolve(buf []byte) (*Frame, error) {
-	//获取reader
-	reader := bufio.NewReader(bytes.NewReader(buf))
-
-	f := &Frame{}
-	//读取command
-	cs, err := reader.ReadString('\n')
-	if err != nil {
-		return nil, err
-	}
-	cs = strings.TrimSuffix(cs, "\n")
-	//是否是client frame
-	if !IsClientCommand(cs) {
-		fmt.Println(cs)
-		return nil, errors.New("not client command")
-	}
-	f.Command, err = CommandOf(cs)
-	if err != nil {
-		return nil, err
-	}
-
-	f.Headers = make(map[string]string, 2)
-	//读取消息头
-	for {
-		hs, err1 := reader.ReadString('\n')
-		if err1 != nil {
-			return nil, err1
-		}
-		hs = strings.TrimSuffix(hs, "\n")
-		//读到空行结束
-		if hs == "" {
-			break
-		}
-		kv := strings.SplitN(hs, ":", 2)
-		//header格式是否合法
-		if len(kv) != 2 {
-			return nil, errors.New("wrong header format")
-		}
-		//如果有重复的header，保留第一个
-		if _, ok := f.Headers[kv[0]]; !ok {
-			f.Headers[kv[0]] = kv[1]
-		}
-	}
-
-	//读取payload,目前body只支持json
-	payload, err := reader.ReadBytes(0x00)
-	if err != nil {
-		return nil, err
-	}
-
-	f.Body = payload[:len(payload)-1]
-	return f, nil
 }
