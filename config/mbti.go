@@ -1,9 +1,7 @@
 package config
 
 var DefaultMBTI = &MBTI{
-	API: MBTIBaseAPI{
-		Sheet: "",
-	},
+	API:   MBTIBaseAPI{},
 	Token: "",
 }
 
@@ -15,5 +13,6 @@ type MBTI struct {
 
 // MBTIBaseAPI 基础接口配置
 type MBTIBaseAPI struct {
-	Sheet string
+	Sheet  string
+	Submit string
 }

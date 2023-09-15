@@ -73,6 +73,11 @@ func (aid *AccountInfoDao) UpdateBy(info model.TAccountInfo) error {
 	return aid.Tx.Exec(sql, info.CampusId, info.AvatarURL, info.Nickname, info.Sex, info.Birthday, info.Extra, info.Id).Error
 }
 
+func (aid *AccountInfoDao) UpdateMBTIResultIdById(id uint64, mbtiResultId string) error {
+	sql := "update account_info set mbti_result_id=? where id=?"
+	return aid.Tx.Exec(sql, mbtiResultId, id).Error
+}
+
 type FollowDao struct {
 	Tx *gorm.DB
 }

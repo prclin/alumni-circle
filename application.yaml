@@ -40,3 +40,4 @@ mbti:
   token: f2f5e4f97b64d936177374b176cd1d683428c11c
   api:
     sheet: https://www.jungus.cn/api/question-sheet/
+    submit: https://www.jungus.cn/api/calc-results/
