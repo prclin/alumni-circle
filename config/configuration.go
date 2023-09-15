@@ -11,6 +11,7 @@ type Configuration struct {
 	Redis      *Redis
 	Jwt        *Jwt
 	OSS        *OSS
+	MBTI       *MBTI
 }
 
 var DefaultConfiguration = &Configuration{
@@ -21,4 +22,5 @@ var DefaultConfiguration = &Configuration{
 	Redis:      DefaultRedis,
 	Jwt:        DefaultJwt,
 	OSS:        DefaultOSS,
+	MBTI:       DefaultMBTI,
 }
