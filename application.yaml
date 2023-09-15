@@ -36,3 +36,7 @@ oss:
   endpoint: https://oss-cn-chengdu.aliyuncs.com
   accessKeyId: LTAI5tDU1MgTC49kLbyA9ZCL
   accessKeySecret: WYLTdfKU39btlK7eqPiVgP7to3Nd9C
+mbti:
+  token: f2f5e4f97b64d936177374b176cd1d683428c11c
+  api:
+    sheet: https://www.jungus.cn/api/question-sheet/
