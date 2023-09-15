@@ -30,6 +30,7 @@ type TAccountInfo struct {
 	Nickname      string    `json:"nickname"`
 	Sex           uint8     `json:"sex"`
 	Birthday      time.Time `json:"birthday"`
+	MBTIResultID  *string   `json:"mbti_result_id"`
 	FollowCount   uint32    `json:"follow_count"`
 	FollowerCount uint32    `json:"follower_count"`
 	Extra         *string   `json:"extra"`
