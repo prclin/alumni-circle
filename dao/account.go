@@ -15,9 +15,9 @@ func NewAccountDao(tx *gorm.DB) *AccountDao {
 
 func (ad *AccountDao) InsertByAccount(account model.TAccount) (uint64, error) {
 	var id uint64
-	sql := "insert into account(email, password) value (?,?)"
+	sql := "insert into account(phone,email,password,extra) value (?,?,?,?)"
 	//插入用户
-	if err := ad.Tx.Exec(sql, account.Email, account.Password).Error; err != nil {
+	if err := ad.Tx.Exec(sql, account.Phone, account.Email, account.Password, account.Extra).Error; err != nil {
 		return 0, err
 	}
 	//查询主键
@@ -46,6 +46,13 @@ func (ad *AccountDao) Exist(id uint64) (bool, error) {
 	sql := "select count(id) from account where id = ?"
 	err := ad.Tx.Raw(sql, id).First(&exist).Error
 	return exist, err
+}
+
+func (ad *AccountDao) SelectByPhone(phone string) (model.TAccount, error) {
+	var account model.TAccount
+	sql := "select id, phone, email, password, state, extra, create_time, update_time from account where phone=?"
+	err := ad.Tx.Raw(sql, phone).First(&account).Error
+	return account, err
 }
 
 type AccountInfoDao struct {

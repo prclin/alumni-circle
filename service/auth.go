@@ -13,6 +13,154 @@ import (
 	"net/http"
 )
 
+func PhoneCaptchaSignIn(phone, captcha string) model.Response[*string] {
+	//查账户
+	ad := dao.NewAccountDao(Datasource)
+	tAccount, err := ad.SelectByPhone(phone)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		Logger.Debug(err)
+		return model.Response[*string]{Code: http.StatusInternalServerError, Message: "服务器内部错误!"}
+	}
+
+	//账户不存在
+	if err == gorm.ErrRecordNotFound {
+		resp := PhoneCaptchaSignUp(phone, captcha)
+		if resp.Code != http.StatusOK {
+			return resp
+		}
+		//再查账户
+		tAccount, err = ad.SelectByPhone(phone)
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			Logger.Debug(err)
+			return model.Response[*string]{Code: http.StatusInternalServerError, Message: "服务器内部错误!"}
+		}
+	} else { //存在
+		//获取验证码
+		resCap, err := dao.GetString("captcha:" + phone)
+		if err != nil && !errors.Is(err, redis.Nil) {
+			Logger.Debug(err)
+			return model.Response[*string]{Code: 500, Message: "服务器内部错误"}
+		}
+
+		//校验
+		if resCap == "" || captcha != resCap {
+			Logger.Info("验证码错误:", "client", captcha, " ", "server-", resCap)
+			return model.Response[*string]{Code: http.StatusBadRequest, Message: "验证码错误"}
+		}
+	}
+
+	//获取账户角色
+	rd := dao.NewRoleDao(Datasource)
+	bindings, err := rd.SelectBindingByAccountId(tAccount.Id)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		Logger.Debug(err)
+		return model.Response[*string]{Code: http.StatusInternalServerError, Message: "服务器内部错误!"}
+	}
+
+	//映射
+	roleIds := make([]uint32, 0, len(bindings))
+	for _, binding := range bindings {
+		roleIds = append(roleIds, binding.RoleId)
+	}
+
+	//生成token
+	claims := model.TokenClaims{
+		RegisteredClaims: jwt.RegisteredClaims{},
+		Id:               tAccount.Id,
+		RoleIds:          roleIds,
+	}
+	token, err := util.GenerateToken(claims)
+	if err != nil {
+		Logger.Debug(err)
+		return model.Response[*string]{Code: http.StatusInternalServerError, Message: "服务器内部错误!"}
+	}
+
+	return model.Response[*string]{Code: http.StatusOK, Message: "登录成功", Data: &token}
+}
+
+func PhoneCaptchaSignUp(phone, captcha string) model.Response[*string] {
+	//获取验证码
+	resCap, err := dao.GetString("captcha:" + phone)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		Logger.Debug(err)
+		return model.Response[*string]{Code: 500, Message: "服务器内部错误"}
+	}
+
+	//校验
+	if resCap == "" || captcha != resCap {
+		Logger.Info("验证码错误:", "client", captcha, " ", "server-", resCap)
+		return model.Response[*string]{Code: http.StatusBadRequest, Message: "验证码错误"}
+	}
+
+	//插入用户
+	tx := Datasource.Begin() //开启事务
+	defer tx.Commit()
+	accountDao := dao.NewAccountDao(tx)
+	id, err := accountDao.InsertByAccount(model.TAccount{Phone: phone})
+	if err != nil {
+		tx.Rollback()
+		Logger.Debug(err)
+		return model.Response[*string]{Code: http.StatusInternalServerError, Message: "服务器内部错误"}
+	}
+
+	//初始化账户信息
+	info := model.TAccountInfo{Id: id, Nickname: fmt.Sprintf("用户-%v", id), AvatarURL: "默认"}
+	accountInfoDao := dao.NewAccountInfoDao(tx)
+	err = accountInfoDao.InsertByAccountInfo(info)
+	if err != nil {
+		tx.Rollback()
+		Logger.Debug(err)
+		return model.Response[*string]{Code: http.StatusInternalServerError, Message: "服务器内部错误"}
+	}
+	return model.Response[*string]{Code: http.StatusOK, Message: "注册成功"}
+}
+
+func PhonePasswordSignIn(phone, password string) model.Response[*string] {
+	//查账户
+	ad := dao.NewAccountDao(Datasource)
+	tAccount, err := ad.SelectByPhone(phone)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		Logger.Debug(err)
+		return model.Response[*string]{Code: http.StatusInternalServerError, Message: "服务器内部错误!"}
+	}
+	//账户不存在
+	if err == gorm.ErrRecordNotFound {
+		Logger.Debug(err)
+		return model.Response[*string]{Code: http.StatusBadRequest, Message: "账户不存在!"}
+	}
+	//比对密码
+	if util.MD5([]byte(password)) != tAccount.Password {
+		return model.Response[*string]{Code: http.StatusBadRequest, Message: "密码错误!"}
+	}
+
+	//获取账户角色
+	rd := dao.NewRoleDao(Datasource)
+	bindings, err := rd.SelectBindingByAccountId(tAccount.Id)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		Logger.Debug(err)
+		return model.Response[*string]{Code: http.StatusInternalServerError, Message: "服务器内部错误!"}
+	}
+
+	//映射
+	roleIds := make([]uint32, 0, len(bindings))
+	for _, binding := range bindings {
+		roleIds = append(roleIds, binding.RoleId)
+	}
+
+	//生成token
+	claims := model.TokenClaims{
+		RegisteredClaims: jwt.RegisteredClaims{},
+		Id:               tAccount.Id,
+		RoleIds:          roleIds,
+	}
+	token, err := util.GenerateToken(claims)
+	if err != nil {
+		Logger.Debug(err)
+		return model.Response[*string]{Code: http.StatusInternalServerError, Message: "服务器内部错误!"}
+	}
+	return model.Response[*string]{Code: http.StatusOK, Message: "登录成功！", Data: &token}
+}
+
 func RevokeRoleAllocation(accountIds []uint64, roleIds []uint32) error {
 	//映射binding
 	bindings := make([]model.TRoleBinding, 0, len(accountIds)*len(roleIds))
@@ -255,7 +403,7 @@ func EmailSignUp(account model.TAccount, captcha string) model.Response[any] {
 	}
 
 	//校验
-	if captcha != resCap {
+	if resCap == "" || captcha != resCap {
 		Logger.Info("验证码错误:", "client", captcha, " ", "server-", resCap)
 		return model.Response[any]{Code: http.StatusBadRequest, Message: "验证码错误"}
 	}
