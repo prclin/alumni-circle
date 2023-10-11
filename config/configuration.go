@@ -12,6 +12,7 @@ type Configuration struct {
 	Jwt        *Jwt
 	OSS        *OSS
 	MBTI       *MBTI
+	SMS        *SMS
 }
 
 var DefaultConfiguration = &Configuration{
@@ -23,4 +24,5 @@ var DefaultConfiguration = &Configuration{
 	Jwt:        DefaultJwt,
 	OSS:        DefaultOSS,
 	MBTI:       DefaultMBTI,
+	SMS:        DefaultSMS,
 }

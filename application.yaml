@@ -41,3 +41,7 @@ mbti:
   api:
     sheet: https://www.jungus.cn/api/question-sheet/
     submit: https://www.jungus.cn/api/calc-results/
+sms:
+  endpoint: dysmsapi.aliyuncs.com
+  accessKeyId: LTAI5tQgT7bY8kDSrDN5zxBj
+  accessKeySecret: fnozVVdy8HPL3I3oMh8wNTMU8hS3iX

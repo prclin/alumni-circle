@@ -18,6 +18,8 @@ func init() {
 	initRedis()
 	//初始化OSS
 	initOSS()
+	//初始化SMS
+	initSMS()
 	//创建router
 	initGin()
 }
