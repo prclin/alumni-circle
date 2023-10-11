@@ -7,13 +7,15 @@ import (
 	"github.com/prclin/alumni-circle/model"
 	"github.com/prclin/alumni-circle/service"
 	"net/http"
+	"regexp"
 	"strconv"
 )
 
 func init() {
 	auth := core.ContextRouter.Group("/auth")
-	auth.POST("/sign_up", EmailSignUp) //邮箱注册
-	auth.PUT("/sign_in", EmailSignIn)  //邮箱登录
+	auth.POST("/sign_up", EmailSignUp)       //邮箱注册
+	auth.PUT("/sign_in", EmailSignIn)        //邮箱登录
+	auth.POST("/sign_in/phone", PhoneSignIn) //手机号码注册或登录
 	auth.POST("/api", PostAPI)
 	auth.PUT("/api/:id", PutAPI)
 	auth.DELETE("/api/:id", DeleteAPI)
@@ -26,6 +28,62 @@ func init() {
 	auth.DELETE("/api/allocation", DeleteAPIAllocation)
 	auth.POST("/role/allocation", PostRoleAllocation)
 	auth.DELETE("/role/allocation", DeleteRoleAllocation)
+}
+
+var (
+	// 手机号校验
+	phoneRegexp *regexp.Regexp
+)
+
+// 初始全局化变量
+func init() {
+	//初始化phoneRegexp
+	phoneReg, err := regexp.Compile("^((13[0-9])|(14[5|7])|(15([0-3]|[5-9]))|(17[013678])|(18[0,5-9]))\\d{8}$")
+	if err != nil {
+		Logger.Fatal(err)
+	}
+	phoneRegexp = phoneReg
+}
+
+// PhoneSignIn 手机号注册登录
+func PhoneSignIn(context *gin.Context) {
+	//获取参数
+	var body struct {
+		Phone    string `json:"phone" binding:"required,min=11,max=11"`
+		Method   string `json:"method" binding:"required"`
+		Password string `json:"password" binding:"omitempty,min=6,max=18"`
+		Captcha  string `json:"captcha" binding:"omitempty,min=6,max=6"`
+	}
+
+	err := context.ShouldBindJSON(&body)
+	if err != nil {
+		Logger.Debug(err)
+		model.Client(context)
+		return
+	}
+
+	//手机号错误
+	if !phoneRegexp.MatchString(body.Phone) {
+		Logger.Debug(err)
+		model.Client(context)
+		return
+	}
+	var res model.Response[*string]
+	switch body.Method {
+	case "password":
+		//手机密码登录
+		res = service.PhonePasswordSignIn(body.Phone, body.Password)
+		break
+	case "captcha":
+		//手机验证码登录
+		res = service.PhoneCaptchaSignIn(body.Phone, body.Captcha)
+		break
+	}
+	//登录成功回写cookie
+	if res.Code == http.StatusOK {
+		context.SetCookie("token", *res.Data, -1, "/", "*", false, false)
+	}
+	model.Write(context, res)
 }
 
 // DeleteRoleAllocation 解配角色
