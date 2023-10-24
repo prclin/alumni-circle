@@ -11,6 +11,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"net/http"
+	"time"
 )
 
 func PhoneCaptchaSignIn(phone, captcha string) model.Response[*string] {
@@ -65,9 +66,11 @@ func PhoneCaptchaSignIn(phone, captcha string) model.Response[*string] {
 
 	//生成token
 	claims := model.TokenClaims{
-		RegisteredClaims: jwt.RegisteredClaims{},
-		Id:               tAccount.Id,
-		RoleIds:          roleIds,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+		},
+		Id:      tAccount.Id,
+		RoleIds: roleIds,
 	}
 	token, err := util.GenerateToken(claims)
 	if err != nil {
@@ -149,9 +152,11 @@ func PhonePasswordSignIn(phone, password string) model.Response[*string] {
 
 	//生成token
 	claims := model.TokenClaims{
-		RegisteredClaims: jwt.RegisteredClaims{},
-		Id:               tAccount.Id,
-		RoleIds:          roleIds,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+		},
+		Id:      tAccount.Id,
+		RoleIds: roleIds,
 	}
 	token, err := util.GenerateToken(claims)
 	if err != nil {
