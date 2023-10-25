@@ -27,11 +27,18 @@ func (bd *BreakDao) InsertBy(tBreak model.TBreak) (uint64, error) {
 	return id, nil
 }
 
-func (bd *BreakDao) SelectById(id uint64) (model.TBreak, error) {
-	var tBreak model.TBreak
+func (bd *BreakDao) SelectById(id uint64) (*model.TBreak, error) {
+	var tBreak *model.TBreak
 	sql := "select id, account_id, content, visibility, state, extra, create_time, update_time from break where id=?"
 	err := bd.Tx.Raw(sql, id).First(&tBreak).Error
 	return tBreak, err
+}
+
+func (bd *BreakDao) SelectByIds(ids []uint64) ([]model.TBreak, error) {
+	var breaks []model.TBreak
+	sql := "select id, account_id, content, visibility, state, extra, create_time, update_time from break where id in ?"
+	err := bd.Tx.Raw(sql, ids).Scan(&breaks).Error
+	return breaks, err
 }
 
 func (bd *BreakDao) UpdateVisibilityBy(tBreak model.TBreak) error {
@@ -42,4 +49,11 @@ func (bd *BreakDao) UpdateVisibilityBy(tBreak model.TBreak) error {
 func (bd *BreakDao) DeleteByIdAndAccountId(id, accountId uint64) error {
 	sql := "delete from break where id=? and account_id=?"
 	return bd.Tx.Exec(sql, id, accountId).Error
+}
+
+func (bd *BreakDao) SelectApprovedIdsRandomlyBefore(latestTime int64, accountId uint64, limit int) ([]uint64, error) {
+	var ids []uint64
+	sql := "select id from break where account_id != ? and state=2 and create_time<= ? order by RAND() limit ?"
+	err := bd.Tx.Raw(sql, accountId, latestTime, limit).First(&ids).Error
+	return ids, err
 }
