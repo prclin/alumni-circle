@@ -45,7 +45,7 @@ func FollowAccount(follow model.TFollow) error {
 
 func GetAccountTag(id uint64) ([]model.TTag, error) {
 	td := dao.NewTagDao(Datasource)
-	tags, err := td.SelectEnabledByAccountId(id)
+	tags, err := td.SelectEnabledAccountTagByAccountId(id)
 	if tags == nil {
 		tags = make([]model.TTag, 0, 0)
 	}
@@ -57,17 +57,17 @@ func UpdateAccountTag(id uint64, tagIds []uint32) ([]model.TTag, error) {
 	defer tx.Commit()
 	td := dao.NewTagDao(tx)
 	//删除原标签
-	err := td.DeleteBindingByAccountId(id)
+	err := td.DeleteAccountTagBindingByAccountId(id)
 	if err != nil {
 		tx.Rollback()
 		return nil, err
 	}
 	//绑定新标签
-	bindings := make([]model.TTagBinding, 0, len(tagIds))
+	bindings := make([]model.TAccountTagBinding, 0, len(tagIds))
 	for _, tagId := range tagIds {
-		bindings = append(bindings, model.TTagBinding{AccountId: id, TagId: tagId})
+		bindings = append(bindings, model.TAccountTagBinding{AccountId: id, TagId: tagId})
 	}
-	err = td.BatchInsertBindingBy(bindings)
+	err = td.BatchInsertAccountTagBindingBy(bindings)
 	if err != nil {
 		tx.Rollback()
 		return nil, err

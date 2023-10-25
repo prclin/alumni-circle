@@ -15,7 +15,8 @@ type TBreak struct {
 }
 
 type Break struct {
-	TBreak
+	*TBreak
 	Shots  []Shot
 	Topics []TTopic
+	Tags   []TTag
 }

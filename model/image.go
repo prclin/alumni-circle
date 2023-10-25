@@ -26,6 +26,7 @@ type TPhotoBinding struct {
 
 // Shot 镜头
 type Shot struct {
+	Id    uint64 `json:"id"`
 	URL   string `json:"url"`
 	Order uint8  `json:"order"`
 }

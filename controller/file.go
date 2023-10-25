@@ -15,6 +15,17 @@ import (
 func init() {
 	file := core.ContextRouter.Group("/file")
 	file.POST("/image", PostImage)
+	file.POST("/images", PostImages)
+}
+
+func PostImages(context *gin.Context) {
+	// Multipart form
+	_, err := context.MultipartForm()
+	if err != nil {
+		model.Client(context)
+		return
+	}
+
 }
 
 // PostImage 上传图片

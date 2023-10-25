@@ -9,6 +9,7 @@ import (
 	"github.com/prclin/alumni-circle/util"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 func init() {
@@ -16,6 +17,45 @@ func init() {
 	_break.POST("", PostBreak)
 	_break.PUT("/:id", PutBreak)
 	_break.DELETE("/:id", DeleteBreak)
+	_break.GET("/feed", GetBreakFeed)
+}
+
+// GetBreakFeed 课间feed
+func GetBreakFeed(context *gin.Context) {
+	//todo 暂时没有实现
+	//获取并解析token
+	claims, err := util.ParseToken(util.IgnoreError(context.Cookie("token")))
+	if err != nil {
+		global.Logger.Debug(err)
+		model.Client(context)
+		return
+	}
+	//获取时间时间戳
+	var latestTime int64
+	latestTimeStr, ok := context.GetQuery("latest_time")
+	if ok {
+		latestTime, err = strconv.ParseInt(latestTimeStr, 10, 64)
+		if err != nil {
+			model.Client(context)
+			return
+		}
+	} else {
+		latestTime = time.Now().UnixMilli()
+	}
+	//获取推荐数
+	var count int
+	countStr, ok := context.GetQuery("count")
+	if ok {
+		count64, err := strconv.ParseInt(countStr, 10, 32)
+		if err != nil {
+			model.Client(context)
+			return
+		}
+		count = int(count64)
+	}
+	service.GetBreakFeed(claims.Id, latestTime, count)
+
+	model.Server(context)
 }
 
 // DeleteBreak 删除课间

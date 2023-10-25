@@ -65,16 +65,16 @@ func (td *TagDao) SelectPageByState(state *uint8, offset int, size int) ([]model
 	return tags, err
 }
 
-func (td *TagDao) DeleteBindingByAccountId(accountId uint64) error {
-	sql := "delete from tag_binding where account_id=?"
+func (td *TagDao) DeleteAccountTagBindingByAccountId(accountId uint64) error {
+	sql := "delete from account_tag_binding where account_id=?"
 	return td.Tx.Exec(sql, accountId).Error
 }
 
-func (td *TagDao) BatchInsertBindingBy(bindings []model.TTagBinding) error {
+func (td *TagDao) BatchInsertAccountTagBindingBy(bindings []model.TAccountTagBinding) error {
 	if len(bindings) == 0 {
 		return nil
 	}
-	sql := "insert into tag_binding(account_id, tag_id) VALUES " //goland报错，忽略
+	sql := "insert into account_tag_binding(account_id, tag_id) VALUES " //goland报错，忽略
 	params := make([]interface{}, 0, 0)
 	for _, binding := range bindings {
 		sql += "(?,?),"
@@ -91,9 +91,16 @@ func (td *TagDao) SelectEnabledByIds(ids []uint32) ([]model.TTag, error) {
 	return tags, err
 }
 
-func (td *TagDao) SelectEnabledByAccountId(accountId uint64) ([]model.TTag, error) {
+func (td *TagDao) SelectEnabledAccountTagByAccountId(accountId uint64) ([]model.TTag, error) {
 	var tags []model.TTag
-	sql := "select tag.id, tag.name, tag.state, tag.extra, tag.create_time, tag.update_time from tag_binding tb inner join tag  on tag.id = tb.tag_id where tb.account_id=? and state=1"
+	sql := "select tag.id, tag.name, tag.state, tag.extra, tag.create_time, tag.update_time from account_tag_binding tb inner join tag  on tag.id = tb.tag_id where tb.account_id=? and state=1"
 	err := td.Tx.Raw(sql, accountId).Scan(&tags).Error
+	return tags, err
+}
+
+func (td *TagDao) SelectEnabledBreakTagByBreakId(breakId uint64) ([]model.TTag, error) {
+	var tags []model.TTag
+	sql := "select tag.id, tag.name, tag.state, tag.extra, tag.create_time, tag.update_time from break_tag_binding tb inner join tag  on tag.id = tb.tag_id where tb.break_id=? and state=1"
+	err := td.Tx.Raw(sql, breakId).Scan(&tags).Error
 	return tags, err
 }

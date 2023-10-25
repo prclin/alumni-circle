@@ -12,8 +12,14 @@ type TTag struct {
 	UpdateTime time.Time `json:"update_time"`
 }
 
-// TTagBinding 标签绑定表
-type TTagBinding struct {
+// TAccountTagBinding 用户标签绑定表
+type TAccountTagBinding struct {
 	AccountId uint64
 	TagId     uint32
+}
+
+// TBreakTagBinding 课间标签绑定表
+type TBreakTagBinding struct {
+	BreakId uint64
+	TagId   uint32
 }

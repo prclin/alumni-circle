@@ -93,7 +93,7 @@ func (sd *ShotDao) BatchInsertBy(bindings []model.TShotBinding) error {
 
 func (sd *ShotDao) SelectShotsByBreakId(breakId uint64) ([]model.Shot, error) {
 	var shots []model.Shot
-	sql := "select i.url, sb.`order` from shot_binding as sb left join image as i on sb.image_id=i.id where sb.break_id=? order by sb.`order`"
+	sql := "select i.id, i.url, sb.`order` from shot_binding as sb left join image as i on sb.image_id=i.id where sb.break_id=? order by sb.`order`"
 	err := sd.Tx.Raw(sql, breakId).Scan(&shots).Error
 	if shots == nil {
 		shots = make([]model.Shot, 0, 0)
