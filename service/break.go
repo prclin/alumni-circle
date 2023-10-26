@@ -2,31 +2,45 @@ package service
 
 import (
 	"github.com/prclin/alumni-circle/dao"
+	_error "github.com/prclin/alumni-circle/error"
 	"github.com/prclin/alumni-circle/global"
 	"github.com/prclin/alumni-circle/model"
+	"hash/fnv"
 	"math"
+	"net/http"
 	"sort"
+	"strconv"
 )
 
-func GetBreakFeed(accountId uint64, latestTime int64, count int) {
+func GetBreakFeed(accountId uint64, latestTime int64, count int) ([]model.Break, error) {
 	//获取用户标签
 	tagDao := dao.NewTagDao(global.Datasource)
 	accountTags, err := tagDao.SelectEnabledAccountTagByAccountId(accountId)
 	if err != nil {
-		return
+		global.Logger.Debug(err)
+		return nil, _error.NewWithCode(http.StatusInternalServerError)
 	}
 	//随机获取发布的帖子
 	breakDao := dao.NewBreakDao(global.Datasource)
 	breakIds, err := breakDao.SelectApprovedIdsRandomlyBefore(latestTime, accountId, 100*count)
-	//todo 去除已推荐的帖子，通过redis实现的布隆过滤器
-
-	exactCount := len(breakIds)
+	filteredBreakIds := make([]uint64, 0, len(breakIds))
+	//去除已推荐的帖子，通过redis实现的布隆过滤器
+	for _, value := range breakIds {
+		recommended := isRecommendedTo(accountId, value)
+		if recommended {
+			continue
+		}
+		filteredBreakIds = append(filteredBreakIds, value)
+	}
+	breakIds = filteredBreakIds
 	//获取帖子标签
+	exactCount := len(breakIds)
 	breakTagMap := make(map[uint64][]model.TTag, exactCount)
 	for _, value := range breakIds {
 		tag, err := tagDao.SelectEnabledBreakTagByBreakId(value)
 		if err != nil {
-			return
+			global.Logger.Debug(err)
+			return nil, _error.NewWithCode(http.StatusInternalServerError)
 		}
 		breakTagMap[value] = tag
 	}
@@ -48,29 +62,95 @@ func GetBreakFeed(accountId uint64, latestTime int64, count int) {
 		topCount = append(topCount, value.BreakId)
 	}
 	//将top count的break id存入redis布隆过滤器
-	recordRecommendedBreaks(accountId, topCount)
-
+	err = recordRecommendedBreaks(accountId, topCount)
+	if err != nil {
+		global.Logger.Debug(err)
+		return nil, _error.NewWithCode(http.StatusInternalServerError)
+	}
 	//查询top count课间并返回
 	tBreaks, err := breakDao.SelectByIds(topCount)
 	if err != nil {
-		return
+		global.Logger.Debug(err)
+		return nil, _error.NewWithCode(http.StatusInternalServerError)
 	}
 	breaks := make([]model.Break, 0, len(tBreaks))
 	shotDao := dao.NewShotDao(global.Datasource)
 	for _, value := range breaks {
 		shots, err := shotDao.SelectShotsByBreakId(value.Id)
 		if err != nil {
-			return
+			global.Logger.Debug(err)
+			return nil, _error.NewWithCode(http.StatusInternalServerError)
 		}
 		value.Shots = shots
 		value.Tags = breakTagMap[value.Id]
 	}
-	//todo 返回breaks
+
+	return breaks, nil
+}
+
+type RecommendBloomFilter struct {
+	Key         string
+	bitSize     uint64
+	hashFuncNum int
+}
+
+// Add 向过滤器中添加课间id
+func (filter RecommendBloomFilter) Add(breakId uint64) error {
+	for i := 0; i < filter.hashFuncNum; i++ {
+		offset := int64(filter.hash(strconv.FormatUint(breakId, 10), i) % filter.bitSize)
+		_, err := dao.SetBit(filter.Key, offset, 1)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Contains 过滤器中是否有某个课间id
+func (filter RecommendBloomFilter) Contains(breakId uint64) (bool, error) {
+	for i := 0; i < filter.hashFuncNum; i++ {
+		offset := int64(filter.hash(strconv.FormatUint(breakId, 10), i) % filter.bitSize)
+		value, err := dao.GetBit(filter.Key, offset)
+		if err != nil {
+			return false, err
+		}
+		if value == 0 {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+func (filter RecommendBloomFilter) hash(item string, seed int) uint64 {
+	h := fnv.New64a()
+	h.Write([]byte(item))
+	hash := h.Sum64()
+	return hash + uint64(seed)
+}
+
+func NewRecommendBloomFilter(key string) *RecommendBloomFilter {
+	return &RecommendBloomFilter{Key: key, bitSize: 5000, hashFuncNum: 3}
 }
 
 // recordRecommendedBreaks 记录已推荐给指定用户的课间id
-func recordRecommendedBreaks(accountId uint64, breakIds []uint64) {
+func recordRecommendedBreaks(accountId uint64, breakIds []uint64) error {
+	filter := NewRecommendBloomFilter("break:recommended:" + strconv.FormatUint(accountId, 10))
+	for _, id := range breakIds {
+		err := filter.Add(id)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
+// isRecommendedTo 判断一个课间是否被推荐给指定用户
+func isRecommendedTo(accountId, breakId uint64) bool {
+	filter := NewRecommendBloomFilter("break:recommended:" + strconv.FormatUint(accountId, 10))
+	contains, err := filter.Contains(breakId)
+	if err != nil {
+		return false
+	}
+	return contains
 }
 
 // 确保BreakSimilarity实现sort.Interface
