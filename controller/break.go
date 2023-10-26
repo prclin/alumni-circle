@@ -21,8 +21,12 @@ func init() {
 }
 
 // GetBreakFeed 课间feed
+//
+// 参数：
+//
+// latest_time 一般为当前时间
+// count	推荐数量
 func GetBreakFeed(context *gin.Context) {
-	//todo 暂时没有实现
 	//获取并解析token
 	claims, err := util.ParseToken(util.IgnoreError(context.Cookie("token")))
 	if err != nil {
@@ -53,9 +57,14 @@ func GetBreakFeed(context *gin.Context) {
 		}
 		count = int(count64)
 	}
-	service.GetBreakFeed(claims.Id, latestTime, count)
 
-	model.Server(context)
+	//获取推荐
+	feeds, err := service.GetBreakFeed(claims.Id, latestTime, count)
+	if err != nil {
+		util.Error(context, err)
+		return
+	}
+	util.Ok(context, util.Ternary(len(feeds) > 0, "ok", "暂无推荐"), feeds)
 }
 
 // DeleteBreak 删除课间
