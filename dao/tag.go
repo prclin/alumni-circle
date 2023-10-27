@@ -104,3 +104,17 @@ func (td *TagDao) SelectEnabledBreakTagByBreakId(breakId uint64) ([]model.TTag, 
 	err := td.Tx.Raw(sql, breakId).Scan(&tags).Error
 	return tags, err
 }
+
+func (td *TagDao) BatchInsertBreakTagBindingBy(bindings []model.TBreakTagBinding) error {
+	if len(bindings) == 0 {
+		return nil
+	}
+	sql := "insert into break_tag_binding(break_id, tag_id) VALUES " //goland报错，忽略
+	params := make([]interface{}, 0, 0)
+	for _, binding := range bindings {
+		sql += "(?,?),"
+		params = append(params, binding.BreakId, binding.TagId)
+	}
+	sql = strings.TrimSuffix(sql, ",")
+	return td.Tx.Exec(sql, params...).Error
+}

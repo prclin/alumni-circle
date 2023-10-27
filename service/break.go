@@ -254,7 +254,7 @@ func UpdateBreakVisibility(tBreak model.TBreak) error {
 	return bd.UpdateVisibilityBy(tBreak)
 }
 
-func PublishBreak(tBreak model.TBreak, shotIds, topicIds []uint64) (model.Break, error) {
+func PublishBreak(tBreak model.TBreak, shotIds []uint64, tagIds []uint32) (*model.Break, error) {
 	tx := global.Datasource.Begin()
 	defer tx.Commit()
 	bd := dao.NewBreakDao(tx)
@@ -262,7 +262,7 @@ func PublishBreak(tBreak model.TBreak, shotIds, topicIds []uint64) (model.Break,
 	breakId, err := bd.InsertBy(tBreak)
 	if err != nil {
 		tx.Rollback()
-		return model.Break{}, err
+		return nil, err
 	}
 	//绑定图片
 	shotBindings := make([]model.TShotBinding, 0, len(shotIds))
@@ -273,35 +273,35 @@ func PublishBreak(tBreak model.TBreak, shotIds, topicIds []uint64) (model.Break,
 	err = sd.BatchInsertBy(shotBindings)
 	if err != nil {
 		tx.Rollback()
-		return model.Break{}, err
+		return nil, err
 	}
-	//绑定话题
-	topicBindings := make([]model.TTopicBinding, 0, len(topicIds))
-	for _, topicId := range topicIds {
-		topicBindings = append(topicBindings, model.TTopicBinding{BreakId: breakId, TopicId: topicId})
+	//绑定标签
+	tagBindings := make([]model.TBreakTagBinding, 0, len(tagIds))
+	for _, tagId := range tagIds {
+		tagBindings = append(tagBindings, model.TBreakTagBinding{BreakId: breakId, TagId: tagId})
 	}
-	td := dao.NewTopicDao(tx)
-	err = td.BatchInsertBindingBy(topicBindings)
+	td := dao.NewTagDao(tx)
+	err = td.BatchInsertBreakTagBindingBy(tagBindings)
 	if err != nil {
 		tx.Rollback()
-		return model.Break{}, err
+		return nil, err
 	}
 	//获取课间
-	var _break model.Break
+	_break := &model.Break{}
 	tb, err := bd.SelectById(breakId) //基本信息
 	_break.TBreak = tb
 	shots, err := sd.SelectShotsByBreakId(breakId) //镜头
 	if err != nil {
 		tx.Rollback()
-		return model.Break{}, err
+		return nil, err
 	}
 	_break.Shots = shots
-	topics, err := td.SelectTopicsByBreakId(breakId) //话题
+	tags, err := td.SelectEnabledBreakTagByBreakId(breakId) //话题
 	if err != nil {
 		tx.Rollback()
-		return model.Break{}, err
+		return nil, err
 	}
-	_break.Topics = topics
+	_break.Tags = tags
 
 	return _break, nil
 }

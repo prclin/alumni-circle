@@ -154,10 +154,9 @@ func PostBreak(c *gin.Context) {
 	var body struct {
 		Content    string   `json:"content" binding:"required,max=2000"`
 		Visibility *uint8   `json:"visibility" binding:"required,min=0,max=3"`
-		State      *uint8   `json:"state" binding:"required,eq=1"` //发布时状态只能为1
 		Extra      *string  `json:"extra"`
 		ShotIds    []uint64 `json:"shot_ids" binding:"required,max=9"`
-		TopicIds   []uint64 `json:"topic_ids" binding:"required"`
+		TagIds     []uint32 `json:"tag_ids" binding:"required"`
 	}
 	err = c.ShouldBindJSON(&body)
 	if err != nil {
@@ -170,10 +169,10 @@ func PostBreak(c *gin.Context) {
 		AccountId:  claims.Id,
 		Content:    body.Content,
 		Visibility: *body.Visibility,
-		State:      *body.State,
+		State:      1, //设置为1，标识审核中,pending
 		Extra:      body.Extra,
 	}
-	_break, err := service.PublishBreak(tBreak, body.ShotIds, body.TopicIds)
+	_break, err := service.PublishBreak(tBreak, body.ShotIds, body.TagIds)
 	if err != nil {
 		global.Logger.Debug(err)
 		model.Server(c)
