@@ -53,7 +53,7 @@ func (bd *BreakDao) DeleteByIdAndAccountId(id, accountId uint64) error {
 
 func (bd *BreakDao) SelectApprovedIdsRandomlyBefore(latestTime int64, accountId uint64, limit int) ([]uint64, error) {
 	var ids []uint64
-	sql := "select id from break where account_id != ? and state=2 and create_time<= ? order by RAND() limit ?"
+	sql := "select id from break where account_id != ? and state=2 and create_time >= ? order by RAND() limit ?"
 	err := bd.Tx.Raw(sql, accountId, latestTime, limit).Scan(&ids).Error
 	return ids, err
 }
