@@ -3,6 +3,7 @@ package controller
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/prclin/alumni-circle/core"
+	_error "github.com/prclin/alumni-circle/error"
 	"github.com/prclin/alumni-circle/global"
 	"github.com/prclin/alumni-circle/model"
 	"github.com/prclin/alumni-circle/service"
@@ -18,6 +19,45 @@ func init() {
 	_break.PUT("/:id", PutBreak)
 	_break.DELETE("/:id", DeleteBreak)
 	_break.GET("/feed", GetBreakFeed)
+	_break.POST("/like", PostBreakLike)
+}
+
+// PostBreakLike 点赞
+func PostBreakLike(context *gin.Context) {
+	//获取token
+	token, err := context.Cookie("token")
+	if err != nil {
+		util.Error(context, _error.TokenNotFoundError)
+		return
+	}
+	//解析token
+	claims, err := util.ParseToken(token)
+	if err != nil {
+		util.Error(context, _error.InvalidTokenError)
+		return
+	}
+
+	//获取break id
+	breakIdStr, ok := context.GetQuery("break_id")
+	if !ok {
+		util.Error(context, _error.NewClientError("课间id未提供"))
+		return
+	}
+
+	//转换break id
+	breakId, err := strconv.ParseUint(breakIdStr, 10, 64)
+	if err != nil {
+		util.Error(context, _error.NewClientError("课间id格式错误"))
+		return
+	}
+
+	//点赞逻辑
+	err = service.LikeBreak(&model.TBreakLike{BreakId: breakId, AccountId: claims.Id})
+	if err != nil {
+		util.Error(context, err)
+		return
+	}
+	util.Ok[any](context, "点赞成功", nil)
 }
 
 // GetBreakFeed 课间feed

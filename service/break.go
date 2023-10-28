@@ -12,6 +12,27 @@ import (
 	"strconv"
 )
 
+// LikeBreak 点赞课间
+//
+// 存入redis，定期刷到数据库
+func LikeBreak(bl *model.TBreakLike) error {
+	//存入redis
+	_, err := dao.HSet("break_likes", bl.String(), 1)
+	if err != nil {
+		global.Logger.Debug(err)
+		return _error.InternalServerError
+	}
+	//更新点赞数
+	_, err = dao.HIncrBy("like_count", strconv.FormatUint(bl.BreakId, 10), 1)
+	if err != nil {
+		global.Logger.Debug(err)
+		//取消点赞
+		dao.HSet("break_likes", bl.String(), 0)
+		return _error.InternalServerError
+	}
+	return nil
+}
+
 func GetBreakFeed(accountId uint64, latestTime int64, count int) ([]model.Break, error) {
 	//获取用户标签
 	tagDao := dao.NewTagDao(global.Datasource)
