@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"strconv"
+	"time"
+)
 
 // TBreak 课间表
 type TBreak struct {
@@ -19,4 +22,14 @@ type Break struct {
 	Shots  []Shot
 	Topics []TTopic
 	Tags   []TTag
+}
+
+// TBreakLike 课件点赞表
+type TBreakLike struct {
+	AccountId uint64
+	BreakId   uint64
+}
+
+func (tbl *TBreakLike) String() string {
+	return strconv.FormatUint(tbl.AccountId, 10) + ":" + strconv.FormatUint(tbl.BreakId, 10)
 }
