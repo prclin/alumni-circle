@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"github.com/prclin/alumni-circle/global"
+	"github.com/prclin/alumni-circle/service"
 	"github.com/redis/go-redis/v9"
 	"time"
 )
@@ -49,10 +50,10 @@ func SubscribeKeyEvent(engine *KeyEventEngine) {
 }
 
 func init() {
-	engine.Handle("expired_break_likes", HandleBreakLikesExpire, 1*time.Hour)
+	engine.Handle("expired_break_likes", HandleBreakLikesExpire, time.Hour)
 	SubscribeKeyEvent(engine)
 }
 
 func HandleBreakLikesExpire(msg *redis.Message) {
-
+	service.FlushBreakLikes()
 }

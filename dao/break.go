@@ -3,6 +3,8 @@ package dao
 import (
 	"github.com/prclin/alumni-circle/model"
 	"gorm.io/gorm"
+	"strconv"
+	"strings"
 )
 
 type BreakDao struct {
@@ -29,14 +31,14 @@ func (bd *BreakDao) InsertBy(tBreak model.TBreak) (uint64, error) {
 
 func (bd *BreakDao) SelectById(id uint64) (*model.TBreak, error) {
 	var tBreak *model.TBreak
-	sql := "select id, account_id, content, visibility, state, extra, create_time, update_time from break where id=?"
+	sql := "select id, account_id, content, visibility, state, like_count, extra, create_time, update_time from break where id=?"
 	err := bd.Tx.Raw(sql, id).First(&tBreak).Error
 	return tBreak, err
 }
 
 func (bd *BreakDao) SelectByIds(ids []uint64) ([]model.TBreak, error) {
 	var breaks []model.TBreak
-	sql := "select id, account_id, content, visibility, state, extra, create_time, update_time from break where id in ?"
+	sql := "select id, account_id, content, visibility, state, like_count, extra, create_time, update_time from break where id in ?"
 	err := bd.Tx.Raw(sql, ids).Scan(&breaks).Error
 	return breaks, err
 }
@@ -56,4 +58,46 @@ func (bd *BreakDao) SelectApprovedIdsRandomlyBefore(latestTime int64, accountId 
 	sql := "select id from break where account_id != ? and state=2 and create_time >= ? order by RAND() limit ?"
 	err := bd.Tx.Raw(sql, accountId, latestTime, limit).Scan(&ids).Error
 	return ids, err
+}
+
+func (bd *BreakDao) BatchInsertLikeBy(likes []model.TBreakLike) error {
+	if likes == nil || len(likes) == 0 {
+		return nil
+	}
+	var sql strings.Builder
+	sql.WriteString("insert into break_like values ")
+	params := make([]interface{}, 0, len(likes)*2)
+	for _, like := range likes {
+		sql.WriteString("(?,?),")
+		params = append(params, like.AccountId, like.BreakId)
+	}
+	return bd.Tx.Exec(sql.String()[:sql.Len()-1], params).Error
+}
+
+func (bd *BreakDao) BatchDeleteLikeBy(unlikes []model.TBreakLike) error {
+	if unlikes == nil || len(unlikes) == 0 {
+		return nil
+	}
+
+	sql := "delete from break_like where (account_id,break_id) in (?)"
+	var param strings.Builder
+	for _, unlike := range unlikes {
+		param.WriteString("(")
+		param.WriteString(strconv.FormatUint(unlike.AccountId, 10))
+		param.WriteString(",")
+		param.WriteString(strconv.FormatUint(unlike.BreakId, 10))
+		param.WriteString("),")
+	}
+	return bd.Tx.Exec(sql, param.String()[:param.Len()-1]).Error
+}
+
+func (bd *BreakDao) BatchIncreaseLikeCount(increases map[uint64]uint32) error {
+	pattern := "update break set like_count=like_count + ? where id = ?;"
+	var sql strings.Builder
+	params := make([]any, 0, len(increases)*2)
+	for key, value := range increases {
+		sql.WriteString(pattern)
+		params = append(params, key, value)
+	}
+	return bd.Tx.Exec(sql.String(), params).Error
 }

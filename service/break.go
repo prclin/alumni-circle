@@ -1,35 +1,166 @@
 package service
 
 import (
+	"context"
 	"github.com/prclin/alumni-circle/dao"
 	_error "github.com/prclin/alumni-circle/error"
 	"github.com/prclin/alumni-circle/global"
 	"github.com/prclin/alumni-circle/model"
+	"github.com/prclin/alumni-circle/util"
+	"github.com/redis/go-redis/v9"
 	"hash/fnv"
 	"math"
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
+	"time"
 )
+
+// FlushBreakLikes 将点赞落库
+func FlushBreakLikes() {
+	const likesKey = "break_likes"
+	const likeGrowthKey = "break_like_growth"
+	expireTime := time.Hour //重置过期时间
+	defer func() {
+		//重新计时
+		err := dao.SetString("expired_"+likesKey, strconv.FormatInt(int64(expireTime), 10), expireTime)
+		if err != nil {
+			global.Logger.Error("无法重新倒计时，请及时处理")
+		}
+	}()
+
+	//获取课间点赞
+	likeMap, err := dao.HGetAll(likesKey)
+	if err != nil && err != redis.Nil {
+		global.Logger.Debug(err)
+		//设置 expired_break_likes 5分钟后过期
+		expireTime = 5 * time.Minute
+		return
+	}
+	//获取课间点赞数
+	likeGrowthMap, err := dao.HGetAll(likeGrowthKey)
+	if err != nil && err != redis.Nil {
+		global.Logger.Debug(err)
+		//设置 expired_break_likes 5分钟后过期
+		expireTime = 5 * time.Minute
+		return
+	}
+
+	//点赞落库
+	likes := make([]model.TBreakLike, 0, len(likeMap)/2)   //点赞
+	unlikes := make([]model.TBreakLike, 0, len(likeMap)/2) //取消点赞
+	for key, value := range likeMap {
+		split := strings.Split(key, ":")
+		accountId := util.IgnoreError(strconv.ParseUint(split[0], 10, 64))
+		breakId := util.IgnoreError(strconv.ParseUint(split[1], 10, 64))
+		breakLike := model.TBreakLike{AccountId: accountId, BreakId: breakId}
+		switch value {
+		case "0":
+			unlikes = append(unlikes, breakLike)
+			break
+		case "1":
+			likes = append(likes, breakLike)
+			break
+		}
+	}
+	tx := global.Datasource.Begin() //开启事务
+	defer tx.Commit()
+	breakDao := dao.NewBreakDao(tx)
+	err = breakDao.BatchInsertLikeBy(likes) //点赞
+	if err != nil {                         //重置过期时间，一会儿再试
+		global.Logger.Debug(err)
+		tx.Rollback()
+		return
+	}
+	err = breakDao.BatchDeleteLikeBy(unlikes) //取消点赞
+	if err != nil {
+		global.Logger.Debug(err)
+		tx.Rollback()
+		return
+	}
+
+	//点赞数落库
+	increases := make(map[uint64]uint32, len(likeGrowthMap))
+	for key, value := range likeGrowthMap {
+		increases[util.IgnoreError(strconv.ParseUint(key, 10, 64))] = uint32(util.IgnoreError(strconv.ParseUint(value, 10, 64)))
+	}
+	err = breakDao.BatchIncreaseLikeCount(increases)
+	if err != nil {
+		global.Logger.Debug(err)
+		tx.Rollback()
+		return
+	}
+
+	//删除过时
+	_, err1 := dao.DeleteKey(likesKey)
+	if err1 != nil {
+		global.Logger.Warn("无法删除过时点赞，请及时处理")
+	}
+	_, err2 := dao.DeleteKey(likeGrowthKey)
+	if err2 != nil {
+		global.Logger.Warn("无法删除过时点赞数，请及时处理")
+	}
+}
 
 // LikeBreak 点赞课间
 //
-// 存入redis，定期刷到数据库
+// 使用lua脚本，获取锁并写到redis
 func LikeBreak(bl *model.TBreakLike) error {
-	//存入redis
-	_, err := dao.HSet("break_likes", bl.String(), 1)
+	const lockKey = "expired_break_likes"
+	const likesKey = "break_likes"
+	const likeGrowthKey = "break_like_growth"
+	//构建脚本
+	script := redis.NewScript(`
+	local lockKey=KEYS[1]
+	--获取锁
+	local lockResult redis.pcall("GET",lockKey)
+	if type(lockResult) == 'table' and lockResult.err then --获取锁发生错误，打印调试信息，并返回错误信息
+  		redis.log(redis.LOG_NOTICE, "get break_lock failed", lockResult.err)
+		return {err = "获取锁时发生错误，注意lock key必须是一个string类型的key,具体错误为：" + lockResult.err}
+	end
+	--没获取到锁，直接返回
+	if not lockResult then
+		return false
+	end
+	
+	--点赞
+	local likeResult = redis.pcall("HSET",KEYS[2],ARGV[1],ARGV[2])
+	if type(likeResult) == 'table' and likeResult.err then --点赞发生错误，打印调试信息，并返回错误信息
+	  	redis.log(redis.LOG_NOTICE, "set break_like field failed", likeResult.err)
+		return {err = "点赞时发生错误，注意break_like key必须是一个hash类型的key,具体错误为：" + likeResult.err}
+	end
+
+	--点赞增长数
+	local growthResult = redis.pcall("HINCRBY",KEYS[3],ARGV[3],ARGV[4])
+	if type(growthResult) == 'table' and growthResult.err then --更新点赞增长数发生错误，打印调试信息，并返回错误信息
+		redis.log(redis.LOG_NOTICE, "set break_like_growth field failed", growthResult.err)
+		return {err = "更新点赞增长数时发生错误，注意break_like_growth key必须是一个hash类型的key,具体错误为：" + growthResult.err}
+	end
+	
+	return true
+	`)
+
+	//有10次重试机会
+	var err error
+	for i := 0; i < 10; i++ {
+		err = script.Run(context.Background(), global.RedisClient, []string{lockKey, likesKey, likeGrowthKey}, bl.String(), 1, strconv.FormatUint(bl.BreakId, 10), 1).Err()
+		if err != nil {
+			if err == redis.Nil && i < 9 { //抢锁失败，休眠50ms，最后一次不休眠
+				time.Sleep(50 * time.Millisecond)
+			} else { //其它错误直接结束重试
+				break
+			}
+		} else { //成功直接退出循环
+			break
+		}
+	}
+
 	if err != nil {
 		global.Logger.Debug(err)
-		return _error.InternalServerError
+		return util.Ternary(err == redis.Nil, _error.InternalServerError, _error.NewServerError("服务器忙，请稍后重试"))
 	}
-	//更新点赞数
-	_, err = dao.HIncrBy("like_count", strconv.FormatUint(bl.BreakId, 10), 1)
-	if err != nil {
-		global.Logger.Debug(err)
-		//取消点赞
-		dao.HSet("break_likes", bl.String(), 0)
-		return _error.InternalServerError
-	}
+
 	return nil
 }
 

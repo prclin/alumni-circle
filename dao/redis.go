@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+func HGetAll(key string) (map[string]string, error) {
+	return RedisClient.HGetAll(context.Background(), key).Result()
+}
+
 func HIncrBy(key string, field string, increment int64) (int64, error) {
 	return RedisClient.HIncrBy(context.Background(), key, field, increment).Result()
 }
