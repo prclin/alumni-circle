@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/prclin/alumni-circle/global"
 	"github.com/redis/go-redis/v9"
+	"time"
 )
 
 var engine = NewKeyEventEngine()
@@ -19,13 +20,22 @@ func NewKeyEventEngine() *KeyEventEngine {
 }
 
 // Handle 添加处理key过期事件函数
-func (e *KeyEventEngine) Handle(key string, handler KeyEventHandler) {
+func (e *KeyEventEngine) Handle(key string, handler KeyEventHandler, expiration time.Duration) {
+	_, err := global.RedisClient.Set(context.Background(), key, "", expiration).Result()
+	if err != nil {
+		global.Logger.Fatalln(err)
+	}
 	e.handlers[key] = handler
 }
 
 // handle 处理事件
 func (e *KeyEventEngine) handle(msg *redis.Message) {
-	e.handlers[msg.Payload](msg)
+	handler, ok := e.handlers[msg.Payload]
+	if !ok {
+		global.Logger.Warn("unhandled event", msg.Payload)
+		return
+	}
+	handler(msg)
 }
 
 func SubscribeKeyEvent(engine *KeyEventEngine) {
@@ -39,10 +49,10 @@ func SubscribeKeyEvent(engine *KeyEventEngine) {
 }
 
 func init() {
-	engine.Handle("flush_likes", HandleFlushLikes)
+	engine.Handle("expired_break_likes", HandleBreakLikesExpire, 1*time.Hour)
 	SubscribeKeyEvent(engine)
 }
 
-func HandleFlushLikes(msg *redis.Message) {
+func HandleBreakLikesExpire(msg *redis.Message) {
 
 }
