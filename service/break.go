@@ -24,7 +24,7 @@ func FlushBreakLikes() {
 	expireTime := time.Hour //重置过期时间
 	defer func() {
 		//重新计时
-		err := dao.SetString("expired_"+likesKey, strconv.FormatInt(int64(expireTime), 10), expireTime)
+		err := dao.SetString("expired_"+likesKey, expireTime.String(), expireTime)
 		if err != nil {
 			global.Logger.Error("无法重新倒计时，请及时处理")
 		}
