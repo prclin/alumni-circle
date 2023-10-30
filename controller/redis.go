@@ -22,7 +22,7 @@ func NewKeyEventEngine() *KeyEventEngine {
 
 // Handle 添加处理key过期事件函数
 func (e *KeyEventEngine) Handle(key string, handler KeyEventHandler, expiration time.Duration) {
-	_, err := global.RedisClient.Set(context.Background(), key, "", expiration).Result()
+	_, err := global.RedisClient.Set(context.Background(), key, expiration, expiration).Result()
 	if err != nil {
 		global.Logger.Fatalln(err)
 	}
