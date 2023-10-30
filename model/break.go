@@ -12,6 +12,7 @@ type TBreak struct {
 	Content    string
 	Visibility uint8
 	State      uint8
+	LikeCount  uint32
 	Extra      *string
 	CreateTime time.Time
 	UpdateTime time.Time
