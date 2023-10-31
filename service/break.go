@@ -103,15 +103,7 @@ func FlushBreakLikes() {
 	}
 }
 
-// LikeBreak 点赞课间
-//
-// 使用lua脚本，获取锁并写到redis
-func LikeBreak(bl *model.TBreakLike) error {
-	const lockKey = "expired_break_likes"
-	const likesKey = "break_likes"
-	const likeGrowthKey = "break_like_growth"
-	//构建脚本
-	script := redis.NewScript(`
+const likeScript = `
 	local lockKey=KEYS[1]
 	--获取锁
 	local lockResult redis.pcall("GET",lockKey)
@@ -124,11 +116,11 @@ func LikeBreak(bl *model.TBreakLike) error {
 		return false
 	end
 	
-	--点赞
+	--点赞或取消
 	local likeResult = redis.pcall("HSET",KEYS[2],ARGV[1],ARGV[2])
-	if type(likeResult) == 'table' and likeResult.err then --点赞发生错误，打印调试信息，并返回错误信息
+	if type(likeResult) == 'table' and likeResult.err then --点赞或取消发生错误，打印调试信息，并返回错误信息
 	  	redis.log(redis.LOG_NOTICE, "set break_like field failed", likeResult.err)
-		return {err = "点赞时发生错误，注意break_like key必须是一个hash类型的key,具体错误为：" + likeResult.err}
+		return {err = "点赞或取消时发生错误，注意break_like key必须是一个hash类型的key,具体错误为：" + likeResult.err}
 	end
 
 	--点赞增长数
@@ -139,12 +131,21 @@ func LikeBreak(bl *model.TBreakLike) error {
 	end
 	
 	return true
-	`)
+	`
 
+// LikeBreak 点赞或取消点赞课间
+//
+// 使用lua脚本，获取锁并写到redis
+func LikeBreak(bl *model.TBreakLike, action int) error {
+	const lockKey = "expired_break_likes"
+	const likesKey = "break_likes"
+	const likeGrowthKey = "break_like_growth"
+	//构建脚本
+	script := redis.NewScript(likeScript)
 	//有10次重试机会
 	var err error
 	for i := 0; i < 10; i++ {
-		err = script.Run(context.Background(), global.RedisClient, []string{lockKey, likesKey, likeGrowthKey}, bl.String(), 1, strconv.FormatUint(bl.BreakId, 10), 1).Err()
+		err = script.Run(context.Background(), global.RedisClient, []string{lockKey, likesKey, likeGrowthKey}, bl.String(), action, strconv.FormatUint(bl.BreakId, 10), util.Ternary(action == 1, 1, -1)).Err()
 		if err != nil {
 			if err == redis.Nil && i < 9 { //抢锁失败，休眠50ms，最后一次不休眠
 				time.Sleep(50 * time.Millisecond)
