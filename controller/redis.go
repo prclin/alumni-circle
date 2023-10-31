@@ -51,7 +51,7 @@ func SubscribeKeyEvent(engine *KeyEventEngine) {
 
 func init() {
 	engine.Handle("expired_break_likes", HandleBreakLikesExpire, time.Hour)
-	SubscribeKeyEvent(engine)
+	go SubscribeKeyEvent(engine)
 }
 
 func HandleBreakLikesExpire(msg *redis.Message) {
