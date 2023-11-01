@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"github.com/prclin/alumni-circle/dao"
+	_error "github.com/prclin/alumni-circle/error"
 	. "github.com/prclin/alumni-circle/global"
 	"github.com/prclin/alumni-circle/model"
 	"github.com/prclin/alumni-circle/util"
@@ -101,9 +102,23 @@ func GetAccountInfo(acquirer uint64, acquiree uint64) (model.Account, error) {
 	return model.Account{Info: info, IsFollowed: followed}, nil
 }
 
-func UpdateAccountInfo(info model.TAccountInfo) error {
-	aid := dao.NewAccountInfoDao(Datasource)
-	return aid.UpdateBy(info)
+func UpdateAccountInfo(info model.TAccountInfo) (*model.TAccountInfo, error) {
+	tx := Datasource.Begin()
+	defer tx.Commit()
+	aid := dao.NewAccountInfoDao(tx)
+	err := aid.UpdateBy(info)
+	if err != nil {
+		tx.Rollback()
+		Logger.Debug(err)
+		return nil, _error.InternalServerError
+	}
+	info1, err := aid.SelectById(info.Id)
+	if err != nil {
+		tx.Rollback()
+		Logger.Debug(err)
+		return nil, _error.InternalServerError
+	}
+	return info1, nil
 }
 
 func GetPhotoWall(accountId uint64) ([]model.Photo, error) {
