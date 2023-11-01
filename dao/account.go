@@ -76,8 +76,8 @@ func (aid *AccountInfoDao) SelectById(id uint64) (model.TAccountInfo, error) {
 }
 
 func (aid *AccountInfoDao) UpdateBy(info model.TAccountInfo) error {
-	sql := "update account_info set campus_id=?,avatar_url=?,nickname=?,sex=?,birthday=?,extra=? where id=?"
-	return aid.Tx.Exec(sql, info.CampusId, info.AvatarURL, info.Nickname, info.Sex, info.Birthday, info.Extra, info.Id).Error
+	sql := "update account_info set nickname=?,avatar_url=?,background_url=?,sex=?,brief=?,birthday=?,extra=? where id=?"
+	return aid.Tx.Exec(sql, info.Nickname, info.AvatarURL, info.BackgroundURL, info.Sex, info.Brief, info.Birthday, info.Extra).Error
 }
 
 func (aid *AccountInfoDao) UpdateMBTIResultIdById(id uint64, mbtiResultId string) error {
