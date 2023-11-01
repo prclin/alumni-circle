@@ -220,12 +220,13 @@ func PutAccountInfo(c *gin.Context) {
 	}
 	//参数绑定
 	var info struct {
-		CampusId  uint32  `json:"campus_id" binding:"required"`
-		AvatarURL string  `json:"avatar_url" binding:"required,url"`
-		Nickname  string  `json:"nickname" binding:"required"`
-		Sex       uint8   `json:"sex" binding:"required,min=1,max=2"`
-		Birthday  string  `json:"birthday" binding:"required,datetime=2006-01-02"`
-		Extra     *string `json:"extra" binding:"omitempty,json"`
+		Nickname      string  `json:"nickname" binding:"required"`
+		AvatarURL     string  `json:"avatar_url" binding:"required,url"`
+		BackgroundURL string  `json:"background_url" binding:"required,url"`
+		Sex           *uint8  `json:"sex" binding:"required,min=0,max=1"`
+		Brief         *string `json:"brief" binding:"required"`
+		Birthday      string  `json:"birthday" binding:"required,datetime=2006-01-02"`
+		Extra         *string `json:"extra" binding:"omitempty,json"`
 	}
 	err = c.ShouldBindJSON(&info)
 	if err != nil {
@@ -236,13 +237,14 @@ func PutAccountInfo(c *gin.Context) {
 
 	//修改信息
 	err = service.UpdateAccountInfo(model.TAccountInfo{
-		Id:        claims.Id,
-		CampusId:  info.CampusId,
-		AvatarURL: info.AvatarURL,
-		Nickname:  info.Nickname,
-		Sex:       info.Sex,
-		Birthday:  util.IgnoreError(time.Parse(time.DateOnly, info.Birthday)),
-		Extra:     info.Extra,
+		Id:            claims.Id,
+		AvatarURL:     info.AvatarURL,
+		BackgroundURL: info.BackgroundURL,
+		Nickname:      info.Nickname,
+		Sex:           *info.Sex,
+		Brief:         *info.Brief,
+		Birthday:      util.IgnoreError(time.Parse(time.DateOnly, info.Birthday)),
+		Extra:         info.Extra,
 	})
 	if err != nil {
 		Logger.Debug(err)
