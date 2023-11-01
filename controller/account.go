@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/prclin/alumni-circle/core"
+	_error "github.com/prclin/alumni-circle/error"
 	. "github.com/prclin/alumni-circle/global"
 	"github.com/prclin/alumni-circle/model"
 	"github.com/prclin/alumni-circle/service"
@@ -225,7 +226,7 @@ func PutAccountInfo(c *gin.Context) {
 		BackgroundURL string  `json:"background_url" binding:"required,url"`
 		Sex           *uint8  `json:"sex" binding:"required,min=0,max=1"`
 		Brief         *string `json:"brief" binding:"required"`
-		Birthday      string  `json:"birthday" binding:"required,datetime=2006-01-02"`
+		Birthday      string  `json:"birthday"`
 		Extra         *string `json:"extra" binding:"omitempty,json"`
 	}
 	err = c.ShouldBindJSON(&info)
@@ -235,23 +236,34 @@ func PutAccountInfo(c *gin.Context) {
 		return
 	}
 
+	var birthday *time.Time
+	if info.Birthday != "" {
+		pTime, err := time.Parse(time.DateTime, info.Birthday)
+		birthday = &pTime
+		if err != nil {
+			Logger.Debug(err)
+			util.Error(c, _error.NewClientError("生日格式错误"))
+			return
+		}
+	}
+
 	//修改信息
-	err = service.UpdateAccountInfo(model.TAccountInfo{
+	infoR, err := service.UpdateAccountInfo(model.TAccountInfo{
 		Id:            claims.Id,
 		AvatarURL:     info.AvatarURL,
 		BackgroundURL: info.BackgroundURL,
 		Nickname:      info.Nickname,
 		Sex:           *info.Sex,
 		Brief:         *info.Brief,
-		Birthday:      util.IgnoreError(time.Parse(time.DateOnly, info.Birthday)),
+		Birthday:      birthday,
 		Extra:         info.Extra,
 	})
 	if err != nil {
-		Logger.Debug(err)
-		model.Server(c)
+		util.Error(c, err)
 		return
 	}
-	model.Write(c, model.Response[any]{Code: http.StatusOK, Message: "修改成功"})
+	Logger.Debug(infoR)
+	util.Ok(c, "修改成功", infoR)
 }
 
 // GetAccountPhoto 获取照片墙

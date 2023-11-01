@@ -68,16 +68,16 @@ func (aid *AccountInfoDao) InsertByAccountInfo(accountInfo model.TAccountInfo) e
 	return aid.Tx.Exec(sql, accountInfo.Id, accountInfo.AvatarURL, accountInfo.Nickname).Error
 }
 
-func (aid *AccountInfoDao) SelectById(id uint64) (model.TAccountInfo, error) {
-	var ai model.TAccountInfo
-	sql := "select id, campus_id, avatar_url, nickname, sex, birthday, follow_count, follower_count, extra, create_time, update_time from account_info where id=?"
+func (aid *AccountInfoDao) SelectById(id uint64) (*model.TAccountInfo, error) {
+	var ai *model.TAccountInfo
+	sql := "select id, campus_id, nickname, avatar_url,background_url, sex, birthday, brief, mbti_result_id, follow_count, follower_count, friend_count, extra, create_time, update_time from account_info where id=?"
 	err := aid.Tx.Raw(sql, id).First(&ai).Error
 	return ai, err
 }
 
 func (aid *AccountInfoDao) UpdateBy(info model.TAccountInfo) error {
 	sql := "update account_info set nickname=?,avatar_url=?,background_url=?,sex=?,brief=?,birthday=?,extra=? where id=?"
-	return aid.Tx.Exec(sql, info.Nickname, info.AvatarURL, info.BackgroundURL, info.Sex, info.Brief, info.Birthday, info.Extra).Error
+	return aid.Tx.Exec(sql, info.Nickname, info.AvatarURL, info.BackgroundURL, info.Sex, info.Brief, info.Birthday, info.Extra, info.Id).Error
 }
 
 func (aid *AccountInfoDao) UpdateMBTIResultIdById(id uint64, mbtiResultId string) error {
