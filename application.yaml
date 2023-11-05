@@ -13,7 +13,7 @@ email:
   password: gryokzzkzchicead
 redis:
   options:
-    addr: "localhost:6379"
+    addr: "www.xyqtech.com:6379"
     db: 0
 jwt:
   rsa:

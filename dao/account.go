@@ -96,7 +96,7 @@ func NewFollowDao(tx *gorm.DB) *FollowDao {
 func (fd *FollowDao) IsFollowed(follower, followee uint64) (bool, error) {
 	var followed bool
 	sql := "select count(*) from follow where follower_id=? and followee_id=?"
-	err := fd.Tx.Raw(sql, follower, followee).Scan(&followed).Error
+	err := fd.Tx.Raw(sql, follower, followee).First(&followed).Error
 	return followed, err
 }
 

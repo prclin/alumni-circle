@@ -7,6 +7,7 @@ import (
 	. "github.com/prclin/alumni-circle/global"
 	"github.com/prclin/alumni-circle/model"
 	"github.com/prclin/alumni-circle/util"
+	"gorm.io/gorm"
 )
 
 func RevokeFollow(follow model.TFollow) error {
@@ -85,21 +86,58 @@ func UpdateAccountTag(id uint64, tagIds []uint32) ([]model.TTag, error) {
 	return tags, nil
 }
 
-func GetAccountInfo(acquirer uint64, acquiree uint64) (model.Account, error) {
-	//获取账户信息
+func GetAccountInfo(acquirer uint64, acquiree uint64) (*model.AccountInfo, error) {
 	aid := dao.NewAccountInfoDao(Datasource)
+	accountInfo := &model.AccountInfo{}
 	//获取账户信息
 	info, err := aid.SelectById(acquiree)
 	if err != nil {
-		return model.Account{}, err
+		Logger.Debug(err)
+		return nil, util.Ternary(err == gorm.ErrRecordNotFound, _error.NewClientError("获取的账户不存在"), _error.InternalServerError)
 	}
+	accountInfo.TAccountInfo = *info
+
+	//获取账户标签
+	tagDao := dao.NewTagDao(Datasource)
+	tags, err := tagDao.SelectEnabledAccountTagByAccountId(acquiree)
+	if err != nil {
+		Logger.Debug(err)
+		return nil, _error.InternalServerError
+	}
+	accountInfo.Tags = tags
+
+	//获取账户学校
+	if accountInfo.CampusId != 0 {
+		campusDao := dao.NewCampusDao(Datasource)
+		campus, err := campusDao.SelectById(accountInfo.CampusId)
+		if err != nil {
+			Logger.Debug(err)
+			return nil, _error.InternalServerError
+		}
+		accountInfo.Campus = campus
+	}
+
+	if acquirer == acquiree {
+		accountInfo.IsFollowed = true
+		accountInfo.IsFriend = true
+		return accountInfo, nil
+	}
+
 	//获取关系
 	fd := dao.NewFollowDao(Datasource)
-	followed, err := fd.IsFollowed(acquirer, acquirer)
+	followed, err := fd.IsFollowed(acquirer, acquiree)
 	if err != nil {
-		return model.Account{}, err
+		return nil, _error.InternalServerError
 	}
-	return model.Account{Info: info, IsFollowed: followed}, nil
+
+	accountInfo.IsFollowed = followed
+
+	beFollowed, err := fd.IsFollowed(acquiree, acquirer)
+	if err != nil {
+		return nil, _error.InternalServerError
+	}
+	accountInfo.IsFriend = followed && beFollowed
+	return accountInfo, nil
 }
 
 func UpdateAccountInfo(info model.TAccountInfo) (*model.TAccountInfo, error) {

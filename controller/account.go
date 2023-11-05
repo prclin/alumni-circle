@@ -9,7 +9,6 @@ import (
 	"github.com/prclin/alumni-circle/model"
 	"github.com/prclin/alumni-circle/service"
 	"github.com/prclin/alumni-circle/util"
-	"gorm.io/gorm"
 	"io"
 	"net/http"
 	"strconv"
@@ -165,42 +164,38 @@ func PutAccountTag(c *gin.Context) {
 	model.Ok(c, tag)
 }
 
-// GetAccountInfo 获取当前登录账户的信息
+// GetAccountInfo 获取账户信息
 func GetAccountInfo(c *gin.Context) {
 	//获取id
 	param := c.Param("id")
 	acquiree, err := strconv.ParseUint(param, 10, 64)
 	if err != nil {
 		Logger.Debug(err)
-		model.Client(c)
+		util.Error(c, _error.PathParamFormatError)
 		return
 	}
-	var acquirer uint64
 	//获取token
 	token, err := c.Cookie("token")
-	if err == nil { //有token
-		//解析token
-		claims, err1 := util.ParseToken(token)
-		if err1 != nil { //token错误
-			Logger.Debug(err1)
-			model.Client(c)
-			return
-		}
-		acquirer = claims.Id
+	if err != nil {
+		Logger.Debug(err)
+		util.Error(c, _error.TokenNotFoundError)
+		return
+	}
+	//解析token
+	claims, err := util.ParseToken(token)
+	if err != nil { //token错误
+		Logger.Debug(err)
+		util.Error(c, _error.MalformedTokenError)
+		return
 	}
 
 	//获取账户信息
-	account, err := service.GetAccountInfo(acquirer, acquiree)
+	accountInfo, err := service.GetAccountInfo(claims.Id, acquiree)
 	if err != nil {
-		Logger.Debug(err)
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			model.Client(c)
-		} else {
-			model.Server(c)
-		}
+		util.Error(c, err)
 		return
 	}
-	model.Ok(c, account)
+	util.Ok(c, "获取成功", accountInfo)
 }
 
 // PutAccountInfo 修改账户信息
