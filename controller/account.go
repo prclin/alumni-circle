@@ -185,7 +185,7 @@ func GetAccountInfo(c *gin.Context) {
 	claims, err := util.ParseToken(token)
 	if err != nil { //token错误
 		Logger.Debug(err)
-		util.Error(c, _error.MalformedTokenError)
+		util.Error(c, _error.InvalidTokenError)
 		return
 	}
 

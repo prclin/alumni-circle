@@ -47,7 +47,7 @@ func FollowAccount(follow model.TFollow) error {
 
 func GetAccountTag(id uint64) ([]model.TTag, error) {
 	td := dao.NewTagDao(Datasource)
-	tags, err := td.SelectEnabledAccountTagByAccountId(id)
+	tags, err := td.SelectEnabledByAccountId(id)
 	if tags == nil {
 		tags = make([]model.TTag, 0, 0)
 	}
@@ -99,7 +99,7 @@ func GetAccountInfo(acquirer uint64, acquiree uint64) (*model.AccountInfo, error
 
 	//获取账户标签
 	tagDao := dao.NewTagDao(Datasource)
-	tags, err := tagDao.SelectEnabledAccountTagByAccountId(acquiree)
+	tags, err := tagDao.SelectEnabledByAccountId(acquiree)
 	if err != nil {
 		Logger.Debug(err)
 		return nil, _error.InternalServerError

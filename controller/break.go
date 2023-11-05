@@ -21,6 +21,53 @@ func init() {
 	_break.GET("/feed", GetBreakFeed)
 	_break.POST("/like", PostBreakLike)
 	_break.DELETE("/like", DeleteBreakLike)
+	_break.GET("/list/:accountId", GetBreakList)
+}
+
+// GetBreakList 获取用户课间列表
+func GetBreakList(context *gin.Context) {
+	//获取账户id
+	accountId, err := strconv.ParseUint(context.Param("accountId"), 10, 64)
+	if err != nil {
+		global.Logger.Debug(err)
+		util.Error(context, _error.PathParamFormatError)
+		return
+	}
+
+	//获取token
+	token, err := context.Cookie("token")
+	if err != nil {
+		global.Logger.Debug(err)
+		util.Error(context, _error.TokenNotFoundError)
+		return
+	}
+
+	//解析token
+	claims, err := util.ParseToken(token)
+	if err != nil {
+		global.Logger.Debug(err)
+		util.Error(context, _error.InvalidTokenError)
+		return
+	}
+
+	//获取分页
+	var pagination model.Pagination
+	err = context.ShouldBindQuery(&pagination)
+	if err != nil {
+		global.Logger.Debug(err)
+		util.Error(context, _error.QueryParamError)
+		return
+	}
+
+	//获取课间
+	list, err := service.AcquireBreakList(claims.Id, accountId, pagination)
+	if err != nil {
+		util.Error(context, err)
+		return
+	}
+
+	util.Ok(context, "获取成功", list)
+
 }
 
 // DeleteBreakLike 取消点赞
@@ -72,6 +119,7 @@ func PostBreakLike(context *gin.Context) {
 	//解析token
 	claims, err := util.ParseToken(token)
 	if err != nil {
+		global.Logger.Debug(err)
 		util.Error(context, _error.InvalidTokenError)
 		return
 	}

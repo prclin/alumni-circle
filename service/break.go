@@ -17,6 +17,69 @@ import (
 	"time"
 )
 
+// AcquireBreakList 获取账户课间列表
+func AcquireBreakList(acquirer, acquiree uint64, pagination model.Pagination) ([]model.Break, error) {
+	visibility, err := getBreakVisibility(acquirer, acquiree)
+	if err != nil {
+		global.Logger.Debug(err)
+		return nil, _error.InternalServerError
+	}
+
+	breakDao := dao.NewBreakDao(global.Datasource)
+	tBreaks, err := breakDao.SelectByAccountIdAndVisibility(acquiree, visibility, pagination)
+	if err != nil {
+		global.Logger.Debug(err)
+		return nil, _error.InternalServerError
+	}
+
+	breaks := make([]model.Break, 0, len(tBreaks))
+	shotDao := dao.NewShotDao(global.Datasource)
+	tagDao := dao.NewTagDao(global.Datasource)
+	for _, tBreak := range tBreaks {
+		shots, err1 := shotDao.SelectShotsByBreakId(tBreak.Id) //镜头
+		if err1 != nil {
+			global.Logger.Warn(err1)
+		}
+		tags, err1 := tagDao.SelectEnabledByBreakId(tBreak.Id) //标签
+		if err1 != nil {
+			global.Logger.Warn(err1)
+		}
+		breaks = append(breaks, model.Break{TBreak: tBreak, Shots: shots, Tags: tags})
+	}
+	return breaks, nil
+}
+
+// getBreakVisibility 获取用户对于指定用户的课间可见范围
+func getBreakVisibility(acquirer uint64, acquiree uint64) (uint8, error) {
+	if acquirer == acquiree {
+		return 0, nil
+	}
+	//获取关系，以推断可见性
+	followDao := dao.NewFollowDao(global.Datasource)
+
+	var visibility uint8 = 3 //所有人可见
+
+	followed, err := followDao.IsFollowed(acquirer, acquiree)
+	if err != nil {
+		return visibility, err
+	}
+
+	if followed { //粉丝可见
+		visibility--
+
+		beFollowed, err := followDao.IsFollowed(acquiree, acquirer)
+		if err != nil {
+			return visibility, nil
+		}
+
+		if beFollowed { //互关可见
+			visibility--
+		}
+	}
+
+	return visibility, err
+}
+
 // FlushBreakLikes 将点赞落库
 func FlushBreakLikes() {
 	const likesKey = "break_likes"
@@ -168,7 +231,7 @@ func LikeBreak(bl *model.TBreakLike, action int) error {
 func GetBreakFeed(accountId uint64, latestTime int64, count int) ([]model.Break, error) {
 	//获取用户标签
 	tagDao := dao.NewTagDao(global.Datasource)
-	accountTags, err := tagDao.SelectEnabledAccountTagByAccountId(accountId)
+	accountTags, err := tagDao.SelectEnabledByAccountId(accountId)
 	if err != nil {
 		global.Logger.Debug(err)
 		return nil, _error.NewWithCode(http.StatusInternalServerError)
@@ -190,7 +253,7 @@ func GetBreakFeed(accountId uint64, latestTime int64, count int) ([]model.Break,
 	exactCount := len(breakIds)
 	breakTagMap := make(map[uint64][]model.TTag, exactCount)
 	for _, value := range breakIds {
-		tag, err := tagDao.SelectEnabledBreakTagByBreakId(value)
+		tag, err := tagDao.SelectEnabledByBreakId(value)
 		if err != nil {
 			global.Logger.Debug(err)
 			return nil, _error.NewWithCode(http.StatusInternalServerError)
@@ -442,14 +505,14 @@ func PublishBreak(tBreak model.TBreak, shotIds []uint64, tagIds []uint32) (*mode
 	//获取课间
 	_break := &model.Break{}
 	tb, err := bd.SelectById(breakId) //基本信息
-	_break.TBreak = tb
+	_break.TBreak = *tb
 	shots, err := sd.SelectShotsByBreakId(breakId) //镜头
 	if err != nil {
 		tx.Rollback()
 		return nil, err
 	}
 	_break.Shots = shots
-	tags, err := td.SelectEnabledBreakTagByBreakId(breakId) //话题
+	tags, err := td.SelectEnabledByBreakId(breakId) //话题
 	if err != nil {
 		tx.Rollback()
 		return nil, err

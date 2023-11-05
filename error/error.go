@@ -4,10 +4,10 @@ import "net/http"
 
 var (
 	TokenNotFoundError   = New(http.StatusUnauthorized, "token未提供")
-	MalformedTokenError  = New(http.StatusUnauthorized, "token格式错误")
 	PathParamFormatError = NewClientError("路径参数格式错误")
 	InvalidTokenError    = New(http.StatusUnauthorized, "无效token")
 	InternalServerError  = New(http.StatusInternalServerError, "服务器内部错误，请稍后重试!")
+	QueryParamError      = New(http.StatusBadRequest, "query参数错误")
 )
 
 type ErrorInterface interface {
