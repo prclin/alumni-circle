@@ -91,17 +91,20 @@ func (td *TagDao) SelectEnabledByIds(ids []uint32) ([]model.TTag, error) {
 	return tags, err
 }
 
-func (td *TagDao) SelectEnabledAccountTagByAccountId(accountId uint64) ([]model.TTag, error) {
+func (td *TagDao) SelectEnabledByAccountId(accountId uint64) ([]model.TTag, error) {
 	var tags []model.TTag
 	sql := "select tag.id, tag.name, tag.state, tag.extra, tag.create_time, tag.update_time from account_tag_binding tb inner join tag  on tag.id = tb.tag_id where tb.account_id=? and state=1"
 	err := td.Tx.Raw(sql, accountId).Scan(&tags).Error
 	return tags, err
 }
 
-func (td *TagDao) SelectEnabledBreakTagByBreakId(breakId uint64) ([]model.TTag, error) {
+func (td *TagDao) SelectEnabledByBreakId(breakId uint64) ([]model.TTag, error) {
 	var tags []model.TTag
 	sql := "select tag.id, tag.name, tag.state, tag.extra, tag.create_time, tag.update_time from break_tag_binding tb inner join tag  on tag.id = tb.tag_id where tb.break_id=? and state=1"
 	err := td.Tx.Raw(sql, breakId).Scan(&tags).Error
+	if tags == nil {
+		tags = make([]model.TTag, 0, 0)
+	}
 	return tags, err
 }
 
