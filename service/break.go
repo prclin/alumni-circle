@@ -106,7 +106,7 @@ func FlushBreakLikes() {
 const likeScript = `
 	local lockKey=KEYS[1]
 	--获取锁
-	local lockResult redis.pcall("GET",lockKey)
+	local lockResult = redis.pcall("GET",lockKey)
 	if type(lockResult) == 'table' and lockResult.err then --获取锁发生错误，打印调试信息，并返回错误信息
   		redis.log(redis.LOG_NOTICE, "get break_lock failed", lockResult.err)
 		return {err = "获取锁时发生错误，注意lock key必须是一个string类型的key,具体错误为：" + lockResult.err}

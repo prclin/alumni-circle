@@ -6,8 +6,8 @@ import (
 
 // Account 数据实体
 type Account struct {
-	Info       *TAccountInfo `json:"info"`
-	IsFollowed bool          `json:"is_followed"`
+	TAccount
+	Info *AccountInfo `json:"info"`
 }
 
 // TAccount 账户表
@@ -20,6 +20,14 @@ type TAccount struct {
 	Extra      *string
 	CreateTime time.Time
 	UpdateTime time.Time
+}
+
+type AccountInfo struct {
+	TAccountInfo
+	Tags       []TTag   `json:"tags"`
+	Campus     *TCampus `json:"campus"`
+	IsFollowed bool     `json:"is_followed"`
+	IsFriend   bool     `json:"is_friend"`
 }
 
 // TAccountInfo 账户信息表
