@@ -297,7 +297,14 @@ func GetBreakFeed(accountId uint64, latestTime int64, count int) ([]model.Break,
 			global.Logger.Debug(err)
 			return nil, _error.NewWithCode(http.StatusInternalServerError)
 		}
+		info, err := GetAccountInfo(accountId, value.AccountId)
+		if err != nil {
+			global.Logger.Debug(err)
+			return nil, _error.NewWithCode(http.StatusInternalServerError)
+		}
+
 		value.Shots = shots
+		value.AccountInfo = info
 		value.Tags = breakTagMap[value.Id]
 	}
 

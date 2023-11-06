@@ -31,14 +31,14 @@ func (dao *BreakDao) InsertBy(tBreak model.TBreak) (uint64, error) {
 
 func (dao *BreakDao) SelectById(id uint64) (*model.TBreak, error) {
 	var tBreak *model.TBreak
-	sql := "select id, account_id, content, visibility, state, like_count, extra, create_time, update_time from break where id=?"
+	sql := "select id, account_id, content, visibility,like_count, comment_count, state,  extra, create_time, update_time from break where id=?"
 	err := dao.Tx.Raw(sql, id).First(&tBreak).Error
 	return tBreak, err
 }
 
 func (dao *BreakDao) SelectByIds(ids []uint64) ([]model.TBreak, error) {
 	var breaks []model.TBreak
-	sql := "select id, account_id, content, visibility, state, like_count, extra, create_time, update_time from break where id in ?"
+	sql := "select id, account_id, content, visibility,like_count, comment_count, state, extra, create_time, update_time from break where id in ?"
 	err := dao.Tx.Raw(sql, ids).Scan(&breaks).Error
 	return breaks, err
 }
