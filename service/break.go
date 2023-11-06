@@ -53,7 +53,8 @@ func AcquireBreakList(acquirer, acquiree uint64, pagination model.Pagination) ([
 		if err1 != nil {
 			global.Logger.Warn(err1)
 		}
-		breaks = append(breaks, model.Break{TBreak: tBreak, Shots: shots, Tags: tags, AccountInfo: info})
+		liked := breakDao.IsLiked(acquirer, tBreak.Id)
+		breaks = append(breaks, model.Break{TBreak: tBreak, Shots: shots, Tags: tags, AccountInfo: info, Liked: liked})
 	}
 	return breaks, nil
 }

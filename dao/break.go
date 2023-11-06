@@ -108,3 +108,10 @@ func (dao *BreakDao) SelectByAccountIdAndVisibility(accountId uint64, visibility
 	err := dao.Tx.Raw(sql, accountId, visibility, (pagination.Page-1)*pagination.Size, pagination.Size).Scan(&breaks).Error
 	return breaks, err
 }
+
+func (dao *BreakDao) IsLiked(accountId, breakId uint64) bool {
+	var liked bool
+	sql := "select count(*) from break_like where  account_id = ? and break_id = ?"
+	dao.Tx.Raw(sql, accountId, breakId).First(&liked)
+	return liked
+}

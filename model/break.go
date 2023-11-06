@@ -24,6 +24,7 @@ type Break struct {
 	Shots       []Shot       `json:"shots"`
 	Tags        []TTag       `json:"tags"`
 	AccountInfo *AccountInfo `json:"account_info"`
+	Liked       bool         `json:"liked"`
 }
 
 // TBreakLike 课件点赞表

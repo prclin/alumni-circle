@@ -24,10 +24,10 @@ type TAccount struct {
 
 type AccountInfo struct {
 	TAccountInfo
-	Tags       []TTag   `json:"tags"`
-	Campus     *TCampus `json:"campus"`
-	IsFollowed bool     `json:"is_followed"`
-	IsFriend   bool     `json:"is_friend"`
+	Tags           []TTag   `json:"tags"`
+	Campus         *TCampus `json:"campus"`
+	Followed       bool     `json:"is_followed"`
+	MutualFollowed bool     `json:"mutual_followed"`
 }
 
 // TAccountInfo 账户信息表
