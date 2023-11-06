@@ -118,8 +118,8 @@ func GetAccountInfo(acquirer uint64, acquiree uint64) (*model.AccountInfo, error
 	}
 
 	if acquirer == acquiree {
-		accountInfo.IsFollowed = true
-		accountInfo.IsFriend = true
+		accountInfo.Followed = true
+		accountInfo.MutualFollowed = true
 		return accountInfo, nil
 	}
 
@@ -130,13 +130,13 @@ func GetAccountInfo(acquirer uint64, acquiree uint64) (*model.AccountInfo, error
 		return nil, _error.InternalServerError
 	}
 
-	accountInfo.IsFollowed = followed
+	accountInfo.Followed = followed
 
 	beFollowed, err := fd.IsFollowed(acquiree, acquirer)
 	if err != nil {
 		return nil, _error.InternalServerError
 	}
-	accountInfo.IsFriend = followed && beFollowed
+	accountInfo.MutualFollowed = followed && beFollowed
 	return accountInfo, nil
 }
 
