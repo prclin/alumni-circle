@@ -7,21 +7,23 @@ import (
 
 // TBreak 课间表
 type TBreak struct {
-	Id         uint64    `json:"id"`
-	AccountId  uint64    `json:"account_id"`
-	Content    string    `json:"content"`
-	Visibility uint8     `json:"visibility"`
-	State      uint8     `json:"state"`
-	LikeCount  uint32    `json:"like_count"`
-	Extra      *string   `json:"extra"`
-	CreateTime time.Time `json:"create_time"`
-	UpdateTime time.Time `json:"update_time"`
+	Id           uint64    `json:"id"`
+	AccountId    uint64    `json:"account_id"`
+	Content      string    `json:"content"`
+	Visibility   uint8     `json:"visibility"`
+	LikeCount    uint32    `json:"like_count"`
+	CommentCount uint32    `json:"comment_count"`
+	State        uint8     `json:"state"`
+	Extra        *string   `json:"extra"`
+	CreateTime   time.Time `json:"create_time"`
+	UpdateTime   time.Time `json:"update_time"`
 }
 
 type Break struct {
 	TBreak
-	Shots []Shot `json:"shots"`
-	Tags  []TTag `json:"tags"`
+	Shots       []Shot       `json:"shots"`
+	Tags        []TTag       `json:"tags"`
+	AccountInfo *AccountInfo `json:"account_info"`
 }
 
 // TBreakLike 课件点赞表
