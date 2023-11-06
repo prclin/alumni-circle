@@ -19,12 +19,20 @@ import (
 
 // AcquireBreakList 获取账户课间列表
 func AcquireBreakList(acquirer, acquiree uint64, pagination model.Pagination) ([]model.Break, error) {
+	//获取账户信息
+	info, err := GetAccountInfo(acquirer, acquiree)
+	if err != nil {
+		return nil, _error.InternalServerError
+	}
+
+	//获取可见范围
 	visibility, err := getBreakVisibility(acquirer, acquiree)
 	if err != nil {
 		global.Logger.Debug(err)
 		return nil, _error.InternalServerError
 	}
 
+	//获取课间
 	breakDao := dao.NewBreakDao(global.Datasource)
 	tBreaks, err := breakDao.SelectByAccountIdAndVisibility(acquiree, visibility, pagination)
 	if err != nil {
@@ -33,6 +41,7 @@ func AcquireBreakList(acquirer, acquiree uint64, pagination model.Pagination) ([
 	}
 
 	breaks := make([]model.Break, 0, len(tBreaks))
+
 	shotDao := dao.NewShotDao(global.Datasource)
 	tagDao := dao.NewTagDao(global.Datasource)
 	for _, tBreak := range tBreaks {
@@ -44,7 +53,7 @@ func AcquireBreakList(acquirer, acquiree uint64, pagination model.Pagination) ([
 		if err1 != nil {
 			global.Logger.Warn(err1)
 		}
-		breaks = append(breaks, model.Break{TBreak: tBreak, Shots: shots, Tags: tags})
+		breaks = append(breaks, model.Break{TBreak: tBreak, Shots: shots, Tags: tags, AccountInfo: info})
 	}
 	return breaks, nil
 }
