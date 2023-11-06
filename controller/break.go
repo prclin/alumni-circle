@@ -22,6 +22,36 @@ func init() {
 	_break.POST("/like", PostBreakLike)
 	_break.DELETE("/like", DeleteBreakLike)
 	_break.GET("/list/:accountId", GetBreakList)
+	_break.GET("/:id/comments", GetBreakComments)
+}
+
+// GetBreakComments 获取课间评论
+func GetBreakComments(context *gin.Context) {
+	//path参数获取
+	_, err := strconv.ParseUint(context.Param("id"), 10, 64)
+	if err != nil {
+		global.Logger.Debug(err)
+		util.Error(context, _error.PathParamFormatError)
+		return
+	}
+	//query参数获取
+	var query struct {
+		//账户id
+		AccountId uint64 `form:"account_id" binding:"required"`
+		//父评论id，为0则获取顶级评论
+		ParentId *uint64 `form:"parent_id" binding:"required"`
+		//分页
+		model.Pagination
+	}
+	err = context.ShouldBindQuery(&query)
+	if err != nil {
+		global.Logger.Debug(err)
+		util.Error(context, _error.QueryParamError)
+		return
+	}
+
+	//获取评论
+	util.Ok(context, "获取成功", make([]model.Comment, 0, 0))
 }
 
 // GetBreakList 获取用户课间列表
