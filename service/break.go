@@ -154,9 +154,9 @@ func FlushBreakLikes() {
 	}
 
 	//点赞数落库
-	increases := make(map[uint64]uint32, len(likeGrowthMap))
+	increases := make(map[uint64]int, len(likeGrowthMap))
 	for key, value := range likeGrowthMap {
-		increases[util.IgnoreError(strconv.ParseUint(key, 10, 64))] = uint32(util.IgnoreError(strconv.ParseUint(value, 10, 64)))
+		increases[util.IgnoreError(strconv.ParseUint(key, 10, 64))] = int(util.IgnoreError(strconv.ParseInt(value, 10, 64)))
 	}
 	err = breakDao.BatchIncreaseLikeCount(increases)
 	if err != nil {

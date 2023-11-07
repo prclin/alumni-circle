@@ -65,41 +65,48 @@ func (dao *BreakDao) BatchInsertLikeBy(likes []model.TBreakLike) error {
 		return nil
 	}
 	var sql strings.Builder
-	sql.WriteString("insert into break_like values ")
+	sql.WriteString("insert ignore into break_like values ")
 	params := make([]interface{}, 0, len(likes)*2)
 	for _, like := range likes {
 		sql.WriteString("(?,?),")
 		params = append(params, like.AccountId, like.BreakId)
 	}
-	return dao.Tx.Exec(sql.String()[:sql.Len()-1], params).Error
+	return dao.Tx.Exec(sql.String()[:sql.Len()-1], params...).Error
 }
 
 func (dao *BreakDao) BatchDeleteLikeBy(unlikes []model.TBreakLike) error {
-	if unlikes == nil || len(unlikes) == 0 {
+	length := len(unlikes)
+	if unlikes == nil || length == 0 {
 		return nil
 	}
 
-	sql := "delete from break_like where (account_id,break_id) in (?)"
-	var param strings.Builder
-	for _, unlike := range unlikes {
-		param.WriteString("(")
-		param.WriteString(strconv.FormatUint(unlike.AccountId, 10))
-		param.WriteString(",")
-		param.WriteString(strconv.FormatUint(unlike.BreakId, 10))
-		param.WriteString("),")
+	var sql strings.Builder
+	sql.WriteString("delete from break_like where (account_id,break_id) in ( ")
+	for i := 0; i < length; i++ {
+		sql.WriteString("(")
+		sql.WriteString(strconv.FormatUint(unlikes[i].AccountId, 10))
+		sql.WriteString(",")
+		sql.WriteString(strconv.FormatUint(unlikes[i].BreakId, 10))
+		sql.WriteString(")")
+
+		if i == length-1 {
+			sql.WriteString(")")
+		} else {
+			sql.WriteString(",")
+		}
 	}
-	return dao.Tx.Exec(sql, param.String()[:param.Len()-1]).Error
+	return dao.Tx.Exec(sql.String()).Error
 }
 
-func (dao *BreakDao) BatchIncreaseLikeCount(increases map[uint64]uint32) error {
+func (dao *BreakDao) BatchIncreaseLikeCount(increases map[uint64]int) error {
 	pattern := "update break set like_count=like_count + ? where id = ?;"
 	var sql strings.Builder
 	params := make([]any, 0, len(increases)*2)
 	for key, value := range increases {
 		sql.WriteString(pattern)
-		params = append(params, key, value)
+		params = append(params, value, key)
 	}
-	return dao.Tx.Exec(sql.String(), params).Error
+	return dao.Tx.Exec(sql.String(), params...).Error
 }
 
 func (dao *BreakDao) SelectByAccountIdAndVisibility(accountId uint64, visibility uint8, pagination model.Pagination) ([]model.TBreak, error) {
