@@ -34,10 +34,25 @@ func GetBreakComments(context *gin.Context) {
 		util.Error(context, _error.PathParamFormatError)
 		return
 	}
+
+	//获取token
+	token, err := context.Cookie("token")
+	if err != nil {
+		global.Logger.Debug(err)
+		util.Error(context, _error.TokenNotFoundError)
+		return
+	}
+
+	//解析token
+	claims, err := util.ParseToken(token)
+	if err != nil {
+		global.Logger.Debug(err)
+		util.Error(context, _error.InvalidTokenError)
+		return
+	}
+
 	//query参数获取
 	var query struct {
-		//账户id
-		AccountId uint64 `form:"account_id" binding:"required"`
 		//父评论id，为0则获取顶级评论
 		ParentId *uint64 `form:"parent_id" binding:"required"`
 		//分页
@@ -51,7 +66,7 @@ func GetBreakComments(context *gin.Context) {
 	}
 
 	//获取评论
-	comments, err := service.GetBreakComments(query.AccountId, id, *query.ParentId, query.Pagination)
+	comments, err := service.GetBreakComments(claims.Id, id, *query.ParentId, query.Pagination)
 	if err != nil {
 		util.Error(context, err)
 		return
