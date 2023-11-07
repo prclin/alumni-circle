@@ -19,8 +19,7 @@ func init() {
 	_break.PUT("/:id", PutBreak)
 	_break.DELETE("/:id", DeleteBreak)
 	_break.GET("/feed", GetBreakFeed)
-	_break.POST("/like", PostBreakLike)
-	_break.DELETE("/like", DeleteBreakLike)
+	_break.PUT("/:id/like", PutBreakLike)
 	_break.GET("/list/:accountId", GetBreakList)
 	_break.GET("/:id/comments", GetBreakComments)
 }
@@ -121,46 +120,16 @@ func GetBreakList(context *gin.Context) {
 
 }
 
-// DeleteBreakLike 取消点赞
-func DeleteBreakLike(context *gin.Context) {
-	//获取token
-	token, err := context.Cookie("token")
+// PutBreakLike 点赞动作
+func PutBreakLike(context *gin.Context) {
+	//获取课间id
+	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
 	if err != nil {
-		util.Error(context, _error.TokenNotFoundError)
-		return
-	}
-	//解析token
-	claims, err := util.ParseToken(token)
-	if err != nil {
-		util.Error(context, _error.InvalidTokenError)
+		global.Logger.Debug(err)
+		util.Error(context, _error.PathParamFormatError)
 		return
 	}
 
-	//获取break id
-	breakIdStr, ok := context.GetQuery("break_id")
-	if !ok {
-		util.Error(context, _error.NewClientError("课间id未提供"))
-		return
-	}
-
-	//转换break id
-	breakId, err := strconv.ParseUint(breakIdStr, 10, 64)
-	if err != nil {
-		util.Error(context, _error.NewClientError("课间id格式错误"))
-		return
-	}
-
-	//取消点赞逻辑
-	err = service.LikeBreak(&model.TBreakLike{BreakId: breakId, AccountId: claims.Id}, 0)
-	if err != nil {
-		util.Error(context, err)
-		return
-	}
-	util.Ok[any](context, "取消成功", nil)
-}
-
-// PostBreakLike 点赞
-func PostBreakLike(context *gin.Context) {
 	//获取token
 	token, err := context.Cookie("token")
 	if err != nil {
@@ -175,27 +144,25 @@ func PostBreakLike(context *gin.Context) {
 		return
 	}
 
-	//获取break id
-	breakIdStr, ok := context.GetQuery("break_id")
-	if !ok {
-		util.Error(context, _error.NewClientError("课间id未提供"))
-		return
+	var query struct {
+		Action *int `form:"action" binding:"required,min=0,max=1"`
 	}
 
-	//转换break id
-	breakId, err := strconv.ParseUint(breakIdStr, 10, 64)
+	//获取动作
+	err = context.ShouldBindQuery(&query)
 	if err != nil {
-		util.Error(context, _error.NewClientError("课间id格式错误"))
+		global.Logger.Debug(err)
+		util.Error(context, _error.QueryParamError)
 		return
 	}
 
 	//点赞逻辑
-	err = service.LikeBreak(&model.TBreakLike{BreakId: breakId, AccountId: claims.Id}, 1)
+	err = service.LikeBreak(&model.TBreakLike{BreakId: id, AccountId: claims.Id}, *query.Action)
 	if err != nil {
 		util.Error(context, err)
 		return
 	}
-	util.Ok[any](context, "点赞成功", nil)
+	util.Ok[any](context, "操作成功", nil)
 }
 
 // GetBreakFeed 课间feed
