@@ -28,7 +28,7 @@ func init() {
 // GetBreakComments 获取课间评论
 func GetBreakComments(context *gin.Context) {
 	//path参数获取
-	_, err := strconv.ParseUint(context.Param("id"), 10, 64)
+	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
 	if err != nil {
 		global.Logger.Debug(err)
 		util.Error(context, _error.PathParamFormatError)
@@ -51,7 +51,13 @@ func GetBreakComments(context *gin.Context) {
 	}
 
 	//获取评论
-	util.Ok(context, "获取成功", make([]model.Comment, 0, 0))
+	comments, err := service.GetBreakComments(query.AccountId, id, *query.ParentId, query.Pagination)
+	if err != nil {
+		util.Error(context, err)
+		return
+	}
+
+	util.Ok(context, "获取成功", comments)
 }
 
 // GetBreakList 获取用户课间列表
