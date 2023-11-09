@@ -22,6 +22,43 @@ func init() {
 	_break.PUT("/:id/like", PutBreakLike)
 	_break.GET("/list/:accountId", GetBreakList)
 	_break.GET("/:id/comments", GetBreakComments)
+	_break.GET("/liked/:accountId", GetLikedBreak)
+}
+
+// GetLikedBreak 获取已点赞课间
+func GetLikedBreak(context *gin.Context) {
+	//账户id
+	acquiree, err := strconv.ParseUint(context.Param("accountId"), 10, 64)
+	if err != nil {
+		global.Logger.Debug(err)
+		util.Error(context, _error.QueryParamError)
+		return
+	}
+
+	//获取并解析token
+	claims, err := util.GetTokenClaims(context)
+	if err != nil {
+		util.Error(context, err)
+		return
+	}
+
+	//分页
+	var pagination model.Pagination
+	err = context.ShouldBindQuery(&pagination)
+	if err != nil {
+		global.Logger.Debug(err)
+		util.Error(context, _error.QueryParamError)
+		return
+	}
+
+	//主要逻辑
+	breaks, err := service.AcquireLikedBreak(claims.Id, acquiree, pagination)
+	if err != nil {
+		util.Error(context, err)
+		return
+	}
+
+	util.Ok(context, "获取成功", breaks)
 }
 
 // GetBreakComments 获取课间评论

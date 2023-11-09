@@ -17,6 +17,54 @@ import (
 	"time"
 )
 
+// AcquireLikedBreak 获取用户点赞
+func AcquireLikedBreak(acquirer, acquiree uint64, pagination model.Pagination) ([]model.Break, error) {
+	breakDao := dao.NewBreakDao(global.Datasource)
+	//已点赞课间id
+	breakIds, err := breakDao.SelectLikedIdsBy(acquiree, pagination)
+	if err != nil {
+		global.Logger.Debug(err)
+		return nil, _error.InternalServerError
+	}
+
+	//查询已点赞课间
+	tBreaks, err := breakDao.SelectByIds(breakIds)
+	if err != nil {
+		global.Logger.Debug(err)
+		return nil, _error.InternalServerError
+	}
+
+	//映射为结果
+	breaks := make([]model.Break, 0, len(tBreaks))
+	shotDao := dao.NewShotDao(global.Datasource)
+	tagDao := dao.NewTagDao(global.Datasource)
+	for _, tBreak := range tBreaks {
+		//不可见则跳过
+		visibility, err1 := getBreakVisibility(acquirer, acquiree)
+		if err1 != nil {
+			global.Logger.Warn(err1)
+		}
+		if tBreak.Visibility < visibility {
+			continue
+		}
+		shots, err1 := shotDao.SelectShotsByBreakId(tBreak.Id) //镜头
+		if err1 != nil {
+			global.Logger.Warn(err1)
+		}
+		tags, err1 := tagDao.SelectEnabledByBreakId(tBreak.Id) //标签
+		if err1 != nil {
+			global.Logger.Warn(err1)
+		}
+		info, err1 := GetAccountInfo(acquirer, acquiree) //账户信息
+		if err1 != nil {
+			global.Logger.Warn(err1)
+		}
+		breaks = append(breaks, model.Break{TBreak: tBreak, Shots: shots, Tags: tags, AccountInfo: info, Liked: true})
+	}
+
+	return breaks, nil
+}
+
 // AcquireBreakList 获取账户课间列表
 func AcquireBreakList(acquirer, acquiree uint64, pagination model.Pagination) ([]model.Break, error) {
 	//获取账户信息

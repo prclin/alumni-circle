@@ -29,8 +29,9 @@ type Break struct {
 
 // TBreakLike 课件点赞表
 type TBreakLike struct {
-	AccountId uint64
-	BreakId   uint64
+	AccountId  uint64
+	BreakId    uint64
+	CreateTime time.Time
 }
 
 func (tbl *TBreakLike) String() string {

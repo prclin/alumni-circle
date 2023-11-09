@@ -65,7 +65,7 @@ func (dao *BreakDao) BatchInsertLikeBy(likes []model.TBreakLike) error {
 		return nil
 	}
 	var sql strings.Builder
-	sql.WriteString("insert ignore into break_like values ")
+	sql.WriteString("insert ignore into break_like(account_id, break_id) values ")
 	params := make([]interface{}, 0, len(likes)*2)
 	for _, like := range likes {
 		sql.WriteString("(?,?),")
@@ -121,4 +121,11 @@ func (dao *BreakDao) IsLiked(accountId, breakId uint64) bool {
 	sql := "select count(*) from break_like where  account_id = ? and break_id = ?"
 	dao.Tx.Raw(sql, accountId, breakId).First(&liked)
 	return liked
+}
+
+func (dao *BreakDao) SelectLikedIdsBy(acquiree uint64, pagination model.Pagination) ([]uint64, error) {
+	var ids []uint64
+	sql := "select break_id from break_like where account_id=? order by create_time desc limit ?,?"
+	err := dao.Tx.Raw(sql, acquiree, (pagination.Page-1)*pagination.Size, pagination.Size).Scan(&ids).Error
+	return ids, err
 }
