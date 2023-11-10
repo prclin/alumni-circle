@@ -82,6 +82,9 @@ func AcquireLikedBreak(acquirer, acquiree uint64, pagination model.Pagination) (
 		if err1 != nil {
 			global.Logger.Warn(err1)
 		}
+		//点赞数
+		growth, _ := dao.HGet("break_like_growth", strconv.FormatUint(tBreak.Id, 10))
+		tBreak.LikeCount = tBreak.LikeCount + uint32(util.IgnoreError(strconv.ParseUint(growth, 10, 32)))
 		breaks = append(breaks, model.Break{TBreak: tBreak, Shots: shots, Tags: tags, AccountInfo: info, Liked: true})
 	}
 
@@ -527,7 +530,7 @@ func tagCosineSimilarity(tags1, tags2 []model.TTag) float64 {
 	v2 := make([]float64, len(tagsSet))
 	// 填充标签向量
 	i := 0
-	for tagId, _ := range tagsSet {
+	for tagId := range tagsSet {
 		//v1
 		if containsTag(tags1, tagId) {
 			v1[i] = 1
