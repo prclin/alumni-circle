@@ -136,7 +136,16 @@ func AcquireBreakList(acquirer, acquiree uint64, pagination model.Pagination) ([
 		if err1 != nil {
 			global.Logger.Warn(err1)
 		}
-		liked := breakDao.IsLiked(acquirer, tBreak.Id)
+		//是否点赞
+		var liked bool
+		action, err1 := dao.HGet("break_likes", strconv.FormatUint(acquirer, 10)+":"+strconv.FormatUint(tBreak.Id, 10))
+		if err1 != nil && err != redis.Nil {
+			global.Logger.Warn(err1)
+		}
+		liked = action == "1"
+		if err == redis.Nil {
+			liked = breakDao.IsLiked(acquirer, tBreak.Id)
+		}
 		breaks = append(breaks, model.Break{TBreak: tBreak, Shots: shots, Tags: tags, AccountInfo: info, Liked: liked})
 	}
 	return breaks, nil

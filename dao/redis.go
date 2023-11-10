@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+func HGet(key, field string) (string, error) {
+	return RedisClient.HGet(context.Background(), key, field).Result()
+}
+
 func HScan(key, pattern string) (map[string]string, error) {
 	keys, _, err := RedisClient.HScan(context.Background(), key, 0, pattern, math.MaxInt64).Result()
 	if err != nil {
