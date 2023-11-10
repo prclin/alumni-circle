@@ -33,7 +33,7 @@ jwt:
       8blV2/Ud3m3KyOZWJ5MUeQ6G331pAgMBAAE=
       -----END RSA PUBLIC KEY-----
 oss:
-  endpoint: https://oss-cn-chengdu.aliyuncs.com
+  endpoint: oss-cn-chengdu.aliyuncs.com
   accessKeyId: LTAI5tDU1MgTC49kLbyA9ZCL
   accessKeySecret: WYLTdfKU39btlK7eqPiVgP7to3Nd9C
 mbti:

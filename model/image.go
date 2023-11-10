@@ -4,11 +4,11 @@ import "time"
 
 // TImage 图片表
 type TImage struct {
-	Id         uint64
-	URL        string
-	Extra      *string
-	CreateTime time.Time
-	UpdateTime time.Time
+	Id         uint64    `json:"id"`
+	URL        string    `json:"url"`
+	Extra      *string   `json:"extra"`
+	CreateTime time.Time `json:"create_time"`
+	UpdateTime time.Time `json:"update_time"`
 }
 
 // Photo 照片
