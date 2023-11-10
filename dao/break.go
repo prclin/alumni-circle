@@ -2,9 +2,11 @@ package dao
 
 import (
 	"github.com/prclin/alumni-circle/model"
+	"github.com/prclin/alumni-circle/util"
 	"gorm.io/gorm"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type BreakDao struct {
@@ -65,11 +67,11 @@ func (dao *BreakDao) BatchInsertLikeBy(likes []model.TBreakLike) error {
 		return nil
 	}
 	var sql strings.Builder
-	sql.WriteString("insert ignore into break_like(account_id, break_id) values ")
-	params := make([]interface{}, 0, len(likes)*2)
+	sql.WriteString("insert ignore into break_like(account_id, break_id, create_time) values ")
+	params := make([]interface{}, 0, len(likes)*3)
 	for _, like := range likes {
-		sql.WriteString("(?,?),")
-		params = append(params, like.AccountId, like.BreakId)
+		sql.WriteString("(?,?,?),")
+		params = append(params, like.AccountId, like.BreakId, util.Ternary(like.CreateTime.IsZero(), time.Now(), like.CreateTime))
 	}
 	return dao.Tx.Exec(sql.String()[:sql.Len()-1], params...).Error
 }
@@ -128,4 +130,18 @@ func (dao *BreakDao) SelectLikedIdsBy(acquiree uint64, pagination model.Paginati
 	sql := "select break_id from break_like where account_id=? order by create_time desc limit ?,?"
 	err := dao.Tx.Raw(sql, acquiree, (pagination.Page-1)*pagination.Size, pagination.Size).Scan(&ids).Error
 	return ids, err
+}
+
+func (dao *BreakDao) SelectLikedBy(acquiree uint64, pagination model.Pagination) ([]model.TBreak, error) {
+	var breaks []model.TBreak
+	sql := `select 
+    b.id, b.account_id, b.content, b.visibility, b.like_count, b.comment_count, b.state, b.extra, b.create_time, b.update_time 
+	from break as b inner join break_like as bl 
+	on b.id = bl.break_id
+	where bl.account_id=? order by bl.create_time desc limit ?,?`
+	err := dao.Tx.Raw(sql, acquiree, (pagination.Page-1)*pagination.Size, pagination.Size).Scan(&breaks).Error
+	if breaks == nil {
+		breaks = make([]model.TBreak, 0, 0)
+	}
+	return breaks, err
 }

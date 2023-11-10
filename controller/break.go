@@ -182,7 +182,7 @@ func PutBreakLike(context *gin.Context) {
 	}
 
 	var query struct {
-		Action *int `form:"action" binding:"required,min=0,max=1"`
+		Action *uint8 `form:"action" binding:"required,min=0,max=1"`
 	}
 
 	//获取动作

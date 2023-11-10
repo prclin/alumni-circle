@@ -7,6 +7,11 @@ import (
 	"time"
 )
 
+func HDel(key string, fields ...string) error {
+	_, err := RedisClient.HDel(context.Background(), key, fields...).Result()
+	return err
+}
+
 func HGet(key, field string) (string, error) {
 	return RedisClient.HGet(context.Background(), key, field).Result()
 }

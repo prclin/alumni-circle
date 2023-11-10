@@ -19,39 +19,36 @@ import (
 
 // AcquireLikedBreak 获取用户点赞
 func AcquireLikedBreak(acquirer, acquiree uint64, pagination model.Pagination) ([]model.Break, error) {
-	breakDao := dao.NewBreakDao(global.Datasource)
-	//已点赞课间id
-	breakIds, err := breakDao.SelectLikedIdsBy(acquiree, pagination)
-	if err != nil {
+	//获取缓存中点赞并落库
+	cachedLikeMap, delFields, err := getCachedLikes(acquiree)
+	if err != nil && err != redis.Nil {
 		global.Logger.Debug(err)
 		return nil, _error.InternalServerError
 	}
-
-	//缓存中已点赞课程id
-	cachedMap, err := getCachedLikes(acquiree)
+	tx := global.Datasource.Begin() //事务
+	breakDao := dao.NewBreakDao(tx)
+	err = breakDao.BatchInsertLikeBy(cachedLikeMap["1"])
 	if err != nil {
 		global.Logger.Debug(err)
+		tx.Rollback()
 		return nil, _error.InternalServerError
 	}
-
-	//获取交集，并且以缓存中点赞为准
-	for _, breakId := range breakIds {
-		_, ok := cachedMap[breakId]
-		if ok {
-			continue
-		}
-		cachedMap[breakId] = 1
+	err = breakDao.BatchDeleteLikeBy(cachedLikeMap["0"])
+	if err != nil {
+		global.Logger.Debug(err)
+		tx.Rollback()
+		return nil, _error.InternalServerError
+	}
+	tx.Commit() //提交
+	//删除落库的点赞，可能会丢失部分新的点赞
+	err = dao.HDel("break_likes", delFields...)
+	if err != nil {
+		global.Logger.Warn(err)
 	}
 
-	likedBreakIds := make([]uint64, 0, len(cachedMap))
-	for key, value := range cachedMap {
-		if value == 1 {
-			likedBreakIds = append(likedBreakIds, key)
-		}
-	}
-
-	//查询已点赞课间
-	tBreaks, err := breakDao.SelectByIds(likedBreakIds)
+	//获取已点赞课间id
+	newBreakDao := dao.NewBreakDao(global.Datasource)
+	tBreaks, err := newBreakDao.SelectLikedBy(acquiree, pagination)
 	if err != nil {
 		global.Logger.Debug(err)
 		return nil, _error.InternalServerError
@@ -91,16 +88,32 @@ func AcquireLikedBreak(acquirer, acquiree uint64, pagination model.Pagination) (
 	return breaks, nil
 }
 
-func getCachedLikes(accountId uint64) (map[uint64]uint8, error) {
+// getCachedLikes 获取点赞和取消点赞组成的map
+func getCachedLikes(accountId uint64) (map[string][]model.TBreakLike, []string, error) {
 	hashMap, err := dao.HScan("break_likes", strconv.FormatUint(accountId, 10)+":*")
 	if err != nil {
-		return nil, err
+		return make(map[string][]model.TBreakLike, 0), make([]string, 0, 0), err
 	}
-	likes := make(map[uint64]uint8, len(hashMap))
+	likeMap := make(map[string][]model.TBreakLike, 2)
+	likeMap["0"] = make([]model.TBreakLike, 0, len(hashMap))
+	likeMap["1"] = make([]model.TBreakLike, 0, len(hashMap))
+	delFields := make([]string, len(hashMap))
 	for key, value := range hashMap {
-		likes[util.IgnoreError(strconv.ParseUint(strings.Split(key, ":")[1], 10, 64))] = uint8(util.IgnoreError(strconv.ParseUint(value, 10, 8)))
+		delFields = append(delFields, key)
+		split := strings.Split(value, ":")
+		var cTime time.Time
+		if split[0] == "1" {
+			cTime = time.UnixMilli(util.IgnoreError(strconv.ParseInt(split[1], 10, 64)))
+		}
+		likeMap[split[0]] = append(likeMap[split[0]], model.TBreakLike{
+			AccountId:  accountId,
+			BreakId:    util.IgnoreError(strconv.ParseUint(strings.Split(key, ":")[1], 10, 64)),
+			CreateTime: cTime,
+		})
 	}
-	return likes, nil
+	//点赞数
+
+	return likeMap, delFields, nil
 }
 
 // AcquireBreakList 获取账户课间列表
@@ -131,24 +144,28 @@ func AcquireBreakList(acquirer, acquiree uint64, pagination model.Pagination) ([
 	shotDao := dao.NewShotDao(global.Datasource)
 	tagDao := dao.NewTagDao(global.Datasource)
 	for _, tBreak := range tBreaks {
-		shots, err1 := shotDao.SelectShotsByBreakId(tBreak.Id) //镜头
-		if err1 != nil {
-			global.Logger.Warn(err1)
+		shots, err := shotDao.SelectShotsByBreakId(tBreak.Id) //镜头
+		if err != nil {
+			global.Logger.Warn(err)
 		}
-		tags, err1 := tagDao.SelectEnabledByBreakId(tBreak.Id) //标签
-		if err1 != nil {
-			global.Logger.Warn(err1)
+		tags, err := tagDao.SelectEnabledByBreakId(tBreak.Id) //标签
+		if err != nil {
+			global.Logger.Warn(err)
 		}
 		//是否点赞
 		var liked bool
-		action, err1 := dao.HGet("break_likes", strconv.FormatUint(acquirer, 10)+":"+strconv.FormatUint(tBreak.Id, 10))
-		if err1 != nil && err != redis.Nil {
-			global.Logger.Warn(err1)
+		value, err := dao.HGet("break_likes", strconv.FormatUint(acquirer, 10)+":"+strconv.FormatUint(tBreak.Id, 10))
+		if err != nil && err != redis.Nil {
+			global.Logger.Warn(err)
+		} else if err != redis.Nil {
+			liked = strings.Split(value, ":")[0] == "1"
 		}
-		liked = action == "1"
 		if err == redis.Nil {
 			liked = breakDao.IsLiked(acquirer, tBreak.Id)
 		}
+		//点赞数
+		growth, _ := dao.HGet("break_like_growth", strconv.FormatUint(tBreak.Id, 10))
+		tBreak.LikeCount = tBreak.LikeCount + uint32(util.IgnoreError(strconv.ParseUint(growth, 10, 32)))
 		breaks = append(breaks, model.Break{TBreak: tBreak, Shots: shots, Tags: tags, AccountInfo: info, Liked: liked})
 	}
 	return breaks, nil
@@ -219,15 +236,17 @@ func FlushBreakLikes() {
 	likes := make([]model.TBreakLike, 0, len(likeMap)/2)   //点赞
 	unlikes := make([]model.TBreakLike, 0, len(likeMap)/2) //取消点赞
 	for key, value := range likeMap {
-		split := strings.Split(key, ":")
-		accountId := util.IgnoreError(strconv.ParseUint(split[0], 10, 64))
-		breakId := util.IgnoreError(strconv.ParseUint(split[1], 10, 64))
+		keyA := strings.Split(key, ":")
+		accountId := util.IgnoreError(strconv.ParseUint(keyA[0], 10, 64))
+		breakId := util.IgnoreError(strconv.ParseUint(keyA[1], 10, 64))
 		breakLike := model.TBreakLike{AccountId: accountId, BreakId: breakId}
-		switch value {
+		valueA := strings.Split(value, ":")
+		switch valueA[0] {
 		case "0":
 			unlikes = append(unlikes, breakLike)
 			break
 		case "1":
+			breakLike.CreateTime = time.UnixMilli(util.IgnoreError(strconv.ParseInt(valueA[1], 10, 64)))
 			likes = append(likes, breakLike)
 			break
 		}
@@ -271,6 +290,15 @@ func FlushBreakLikes() {
 	}
 }
 
+// likeScript 点赞脚本
+//
+// 点赞格式 account_id:break_id  action:time
+//
+// 4:11  0:12324555
+//
+// 点赞数格式 break_id growth
+//
+// 11 1
 const likeScript = `
 	local lockKey=KEYS[1]
 	--获取锁
@@ -304,7 +332,7 @@ const likeScript = `
 // LikeBreak 点赞或取消点赞课间
 //
 // 使用lua脚本，获取锁并写到redis
-func LikeBreak(bl *model.TBreakLike, action int) error {
+func LikeBreak(bl *model.TBreakLike, action uint8) error {
 	const lockKey = "expired_break_likes"
 	const likesKey = "break_likes"
 	const likeGrowthKey = "break_like_growth"
@@ -313,7 +341,15 @@ func LikeBreak(bl *model.TBreakLike, action int) error {
 	//有10次重试机会
 	var err error
 	for i := 0; i < 10; i++ {
-		err = script.Run(context.Background(), global.RedisClient, []string{lockKey, likesKey, likeGrowthKey}, bl.String(), action, strconv.FormatUint(bl.BreakId, 10), util.Ternary(action == 1, 1, -1)).Err()
+		err = script.Run(
+			context.Background(),
+			global.RedisClient,
+			[]string{lockKey, likesKey, likeGrowthKey}, //keys
+			bl.String(),                                //field 1
+			strconv.FormatUint(uint64(action), 10)+":"+util.Ternary(action == 0, "", strconv.FormatInt(time.Now().UnixMilli(), 10)), //value 1
+			strconv.FormatUint(bl.BreakId, 10), //field 2
+			util.Ternary(action == 1, 1, -1),   //value 2
+		).Err()
 		if err != nil {
 			if err == redis.Nil && i < 9 { //抢锁失败，休眠50ms，最后一次不休眠
 				time.Sleep(50 * time.Millisecond)
