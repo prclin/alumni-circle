@@ -3,8 +3,22 @@ package dao
 import (
 	"context"
 	. "github.com/prclin/alumni-circle/global"
+	"math"
 	"time"
 )
+
+func HScan(key, pattern string) (map[string]string, error) {
+	keys, _, err := RedisClient.HScan(context.Background(), key, 0, pattern, math.MaxInt64).Result()
+	if err != nil {
+		return nil, err
+	}
+	res := make(map[string]string, len(keys)/2)
+	mi := len(keys) - 1
+	for i := 0; i < mi; i += 2 {
+		res[keys[i]] = keys[i+1]
+	}
+	return res, nil
+}
 
 func HGetAll(key string) (map[string]string, error) {
 	return RedisClient.HGetAll(context.Background(), key).Result()

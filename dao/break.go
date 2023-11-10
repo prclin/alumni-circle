@@ -99,19 +99,19 @@ func (dao *BreakDao) BatchDeleteLikeBy(unlikes []model.TBreakLike) error {
 }
 
 func (dao *BreakDao) BatchIncreaseLikeCount(increases map[uint64]int) error {
-	pattern := "update break set like_count=like_count + ? where id = ?;"
-	var sql strings.Builder
-	params := make([]any, 0, len(increases)*2)
+	sql := "update break set like_count=like_count + ? where id = ?;"
 	for key, value := range increases {
-		sql.WriteString(pattern)
-		params = append(params, value, key)
+		err := dao.Tx.Exec(sql, value, key).Error
+		if err != nil {
+			return err
+		}
 	}
-	return dao.Tx.Exec(sql.String(), params...).Error
+	return nil
 }
 
 func (dao *BreakDao) SelectByAccountIdAndVisibility(accountId uint64, visibility uint8, pagination model.Pagination) ([]model.TBreak, error) {
 	var breaks []model.TBreak
-	sql := "select * from break where account_id = ? and visibility >= ? limit ?,?"
+	sql := "select * from break where account_id = ? and visibility >= ? order by create_time desc limit ?,?"
 	err := dao.Tx.Raw(sql, accountId, visibility, (pagination.Page-1)*pagination.Size, pagination.Size).Scan(&breaks).Error
 	return breaks, err
 }

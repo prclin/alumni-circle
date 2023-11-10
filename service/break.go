@@ -27,8 +27,31 @@ func AcquireLikedBreak(acquirer, acquiree uint64, pagination model.Pagination) (
 		return nil, _error.InternalServerError
 	}
 
+	//缓存中已点赞课程id
+	cachedMap, err := getCachedLikes(acquiree)
+	if err != nil {
+		global.Logger.Debug(err)
+		return nil, _error.InternalServerError
+	}
+
+	//获取交集，并且以缓存中点赞为准
+	for _, breakId := range breakIds {
+		_, ok := cachedMap[breakId]
+		if ok {
+			continue
+		}
+		cachedMap[breakId] = 1
+	}
+
+	likedBreakIds := make([]uint64, 0, len(cachedMap))
+	for key, value := range cachedMap {
+		if value == 1 {
+			likedBreakIds = append(likedBreakIds, key)
+		}
+	}
+
 	//查询已点赞课间
-	tBreaks, err := breakDao.SelectByIds(breakIds)
+	tBreaks, err := breakDao.SelectByIds(likedBreakIds)
 	if err != nil {
 		global.Logger.Debug(err)
 		return nil, _error.InternalServerError
@@ -63,6 +86,18 @@ func AcquireLikedBreak(acquirer, acquiree uint64, pagination model.Pagination) (
 	}
 
 	return breaks, nil
+}
+
+func getCachedLikes(accountId uint64) (map[uint64]uint8, error) {
+	hashMap, err := dao.HScan("break_likes", strconv.FormatUint(accountId, 10)+":*")
+	if err != nil {
+		return nil, err
+	}
+	likes := make(map[uint64]uint8, len(hashMap))
+	for key, value := range hashMap {
+		likes[util.IgnoreError(strconv.ParseUint(strings.Split(key, ":")[1], 10, 64))] = uint8(util.IgnoreError(strconv.ParseUint(value, 10, 8)))
+	}
+	return likes, nil
 }
 
 // AcquireBreakList 获取账户课间列表
